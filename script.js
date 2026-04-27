@@ -21,7 +21,7 @@ for (let i = 0; i < 120; i++) {
 
 let particles = [];
 
-for (let t = 0; t < Math.PI * 2; t += 0.08) {
+for (let t = 0; t < Math.PI * 2; t += 0.03) {
   let x = 16 * Math.pow(Math.sin(t), 3);
   let y = 13 * Math.cos(t)
         - 5 * Math.cos(2 * t)
@@ -78,7 +78,7 @@ function update() {
 
     let scale = Math.min(canvas.width, canvas.height) / 40;
 
-    let targetX = canvas.width/2 + p.bx * scale * pulse;
+    let targetX = canvas.width/2 + p.bx * scale * pulse - scale * 2;
     let targetY = canvas.height/2 - p.by * scale * pulse;
 
     let targetX = canvas.width/2 + p.bx * scaleX * pulse;
@@ -103,9 +103,9 @@ function update() {
     p.x += p.vx;
     p.y += p.vy;
 
-    ctx.fillStyle = "#ff4d6d";
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = "#ff4d6d";
+    ctx.fillStyle = "#ff2e63";
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = "#ff2e63";
     ctx.font = "11px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -127,7 +127,7 @@ window.addEventListener("click", () => {
   });
 
   setTimeout(() => {
-    text.innerText = "Ты мне очень нравишься ❤️";
+    text.innerText = "Ты мне очень нравишься";
 
     text.style.opacity = 1;
     text.style.transform = "translate(-50%, -50%) scale(1)";

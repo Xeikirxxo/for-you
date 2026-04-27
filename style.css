@@ -14,14 +14,22 @@ canvas {
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(0.5);
-  font-size: 5vw;
+  transform: translate(-50%, -50%) scale(0.6);
+
+  font-size: 4vw;
+  font-weight: 600;
+  letter-spacing: 1px;
+
+  color: #ffffff;
+
+  text-shadow:
+    0 0 10px #ff4d6d,
+    0 0 20px #ff4d6d,
+    0 0 40px #ff4d6d;
+
   text-align: center;
-  width: 90%;
+  width: 80%;
+
   opacity: 0;
-
-  color: white;
-  text-shadow: 0 0 20px #ff4d6d;
-
   transition: all 0.6s ease;
 }
