@@ -1,0 +1,23 @@
+body {
+  margin: 0;
+  background: black;
+  overflow: hidden;
+  touch-action: none;
+  font-family: Arial, sans-serif;
+}
+
+canvas {
+  display: block;
+}
+
+#text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  opacity: 0;
+  color: white;
+  font-size: 24px;
+  text-align: center;
+  transition: 0.6s;
+}
