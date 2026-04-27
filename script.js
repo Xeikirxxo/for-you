@@ -55,7 +55,7 @@ let time = 0;
 function update() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  let baseScale = Math.min(canvas.width, canvas.height) / 30;
+  let baseScale = Math.min(canvas.width, canvas.height) / 40;
 
   stars.forEach(s => {
     s.y += s.speed;
@@ -128,5 +128,6 @@ window.addEventListener("click", () => {
   text.innerText = "Ты мне очень нравишься ❤️";
   text.style.opacity = 1;
   text.style.transform = "translate(-50%, -50%) scale(1)";
+  text.style.transition = "all 0.6s ease";
 }, 500);
 });
