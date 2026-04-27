@@ -25,9 +25,9 @@ for (let i = 0; i < 200; i++) {
 // Точки сердца
 let heartPoints = [];
 for (let t = 0; t < Math.PI * 2; t += 0.018) {
-  let x = 16 * Math.pow(Math.sin(t), 3);
-  let y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
-  heartPoints.push({ bx: x, by: y });
+  let hx = 16 * Math.pow(Math.sin(t), 3);
+  let hy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+  heartPoints.push({ bx: hx, by: hy });
 }
 
 // Частицы сердца
@@ -40,21 +40,21 @@ let particles = heartPoints.map(p => ({
   vy: 0
 }));
 
-// Энергетические частицы фона — летят к сердцу
+// Энергетические частицы летящие к сердцу
 let energyParticles = [];
+
 function spawnEnergy() {
   let angle = Math.random() * Math.PI * 2;
-  let dist = Math.random() * Math.max(canvas.width, canvas.height) * 0.6 + 150;
+  let dist = Math.random() * Math.max(canvas.width, canvas.height) * 0.5 + 200;
   energyParticles.push({
     x: canvas.width / 2 + Math.cos(angle) * dist,
     y: canvas.height / 2 + Math.sin(angle) * dist,
     size: Math.random() * 1.5 + 0.5,
     speed: Math.random() * 1.5 + 0.8,
-    alpha: Math.random() * 0.6 + 0.3,
-    angle: angle + Math.PI // летит к центру
+    alpha: Math.random() * 0.6 + 0.3
   });
 }
-// Спавним постоянно
+
 setInterval(spawnEnergy, 80);
 
 let angleY = 0;
@@ -62,9 +62,9 @@ let time = 0;
 let messageShown = false;
 let clickEffects = [];
 
+// Взрыв — работает при каждом нажатии
 function addClickEffect(cx, cy) {
   clickEffects.push({ x: cx, y: cy, t: 0, max: 60 });
-  // Взрыв частиц сердца от точки нажатия
   particles.forEach(p => {
     let dx = p.x - cx;
     let dy = p.y - cy;
@@ -73,39 +73,28 @@ function addClickEffect(cx, cy) {
     p.vx += dx * f * 0.5;
     p.vy += dy * f * 0.5;
   });
-  // Взрыв энергетических частиц тоже
-  energyParticles.forEach(p => {
-    let dx = p.x - cx;
-    let dy = p.y - cy;
-    let dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 180) {
-      p.x += dx * 0.3;
-      p.y += dy * 0.3;
-    }
-  });
 }
 
+// Текст — появляется один раз при первом нажатии
 function showMessage() {
   if (!messageShown) {
     messageShown = true;
     hint.style.opacity = '0';
-    setTimeout(() => {
-      msg.classList.add('visible');
-    }, 100);
+    msg.classList.add('visible');
   }
 }
 
-canvas.addEventListener("click", e => {
+canvas.addEventListener("click", function(e) {
   addClickEffect(e.clientX, e.clientY);
   showMessage();
 });
 
-canvas.addEventListener("touchstart", e => {
-  let t = e.touches[0];
-  addClickEffect(t.clientX, t.clientY);
+canvas.addEventListener("touchstart", function(e) {
+  e.preventDefault();
+  var touch = e.touches[0];
+  addClickEffect(touch.clientX, touch.clientY);
   showMessage();
   if (navigator.vibrate) navigator.vibrate(60);
-  e.preventDefault();
 }, { passive: false });
 
 function draw() {
@@ -114,51 +103,53 @@ function draw() {
 
   time += 0.016;
 
-  // Звёзды мерцают
-  stars.forEach(s => {
+  // Звёзды
+  stars.forEach(function(s) {
     s.twinkle += 0.03;
-    let a = s.alpha * (0.7 + 0.3 * Math.sin(s.twinkle));
+    var a = s.alpha * (0.7 + 0.3 * Math.sin(s.twinkle));
     ctx.beginPath();
     ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.fillStyle = "rgba(255,255,255," + a + ")";
     ctx.fill();
   });
 
-  // Энергетические частицы летят к сердцу
-  energyParticles = energyParticles.filter(p => {
-    let dx = canvas.width / 2 - p.x;
-    let dy = canvas.height / 2 - p.y;
-    let dist = Math.sqrt(dx * dx + dy * dy);
+  // Энергия летит к сердцу
+  var newEnergy = [];
+  for (var i = 0; i < energyParticles.length; i++) {
+    var p = energyParticles[i];
+    var dx = canvas.width / 2 - p.x;
+    var dy = canvas.height / 2 - p.y;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 30) continue; // поглощена сердцем
 
-    // Немного искривляем траекторию — спираль
-    let perpX = -dy / dist;
-    let perpY = dx / dist;
-    let curl = 0.3;
+    // Спираль к центру
+    var nx = dx / dist;
+    var ny = dy / dist;
+    var perpX = -ny * 0.4;
+    var perpY = nx * 0.4;
+    p.x += nx * p.speed + perpX;
+    p.y += ny * p.speed + perpY;
 
-    p.x += (dx / dist) * p.speed + perpX * curl;
-    p.y += (dy / dist) * p.speed + perpY * curl;
-
-    // Исчезает при подлёте к сердцу
-    let fade = Math.min(1, dist / 80);
+    var fade = Math.min(1, dist / 100);
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255, 80, 120, ${p.alpha * fade})`;
+    ctx.fillStyle = "rgba(255,80,120," + (p.alpha * fade) + ")";
     ctx.fill();
+    newEnergy.push(p);
+  }
+  energyParticles = newEnergy;
 
-    return dist > 30; // удаляем когда долетела
-  });
-
-  // Вращение вокруг вертикальной оси — медленнее
+  // Сердце вращается медленно вокруг вертикальной оси
   angleY += 0.012;
-  let pulse = 1 + Math.sin(time * 1.8) * 0.07;
-  let scale = Math.min(canvas.width, canvas.height) / 38;
+  var pulse = 1 + Math.sin(time * 1.8) * 0.07;
+  var scale = Math.min(canvas.width, canvas.height) / 38;
 
-  particles.forEach(p => {
-    let rotX = p.bx * Math.cos(angleY);
-    let rotZ = p.bx * Math.sin(angleY);
+  particles.forEach(function(p) {
+    var rotX = p.bx * Math.cos(angleY);
+    var rotZ = p.bx * Math.sin(angleY);
 
-    let tx = canvas.width / 2 + rotX * scale * pulse;
-    let ty = canvas.height / 2 + p.by * scale * pulse;
+    var tx = canvas.width / 2 + rotX * scale * pulse;
+    var ty = canvas.height / 2 + p.by * scale * pulse;
 
     p.vx += (tx - p.x) * 0.06;
     p.vy += (ty - p.y) * 0.06;
@@ -167,31 +158,35 @@ function draw() {
     p.x += p.vx;
     p.y += p.vy;
 
-    let depth = (rotZ / 16 + 1) / 2;
-    let r = Math.round(180 + depth * 75);
-    let g = Math.round(20 + depth * 25);
-    let b = Math.round(55 + depth * 30);
-    let size = 2 + depth * 1.5;
+    var depth = (rotZ / 16 + 1) / 2;
+    var r = Math.round(180 + depth * 75);
+    var g = Math.round(20 + depth * 25);
+    var b = Math.round(55 + depth * 30);
+    var size = 2 + depth * 1.5;
 
     ctx.beginPath();
     ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
     ctx.fill();
   });
 
-  // Рипл от нажатий
-  clickEffects = clickEffects.filter(e => e.t < e.max);
-  clickEffects.forEach(e => {
-    e.t++;
-    let progress = e.t / e.max;
-    let r = progress * 140;
-    let alpha = (1 - progress) * 0.7;
+  // Рипл при нажатиях
+  var newEffects = [];
+  for (var j = 0; j < clickEffects.length; j++) {
+    var ef = clickEffects[j];
+    ef.t++;
+    if (ef.t >= ef.max) continue;
+    var progress = ef.t / ef.max;
+    var radius = progress * 140;
+    var alpha = (1 - progress) * 0.7;
     ctx.beginPath();
-    ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(255, 45, 85, ${alpha})`;
+    ctx.arc(ef.x, ef.y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,45,85," + alpha + ")";
     ctx.lineWidth = 2;
     ctx.stroke();
-  });
+    newEffects.push(ef);
+  }
+  clickEffects = newEffects;
 
   requestAnimationFrame(draw);
 }
