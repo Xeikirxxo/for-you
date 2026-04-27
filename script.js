@@ -81,9 +81,6 @@ function update() {
     let targetX = canvas.width/2 + p.bx * scale * pulse - scale * 2;
     let targetY = canvas.height/2 - p.by * scale * pulse;
 
-    let targetX = canvas.width/2 + p.bx * scaleX * pulse;
-    let targetY = canvas.height/2 - p.by * scaleY * pulse;
-
     let dx = p.x - mouse.x;
     let dy = p.y - mouse.y;
     let dist = Math.sqrt(dx*dx + dy*dy);
