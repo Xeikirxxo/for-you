@@ -40,9 +40,8 @@ let particles = heartPoints.map(p => ({
   vy: 0
 }));
 
-// Энергетические частицы летящие к сердцу
+// Энергетические частицы
 let energyParticles = [];
-
 function spawnEnergy() {
   let angle = Math.random() * Math.PI * 2;
   let dist = Math.random() * Math.max(canvas.width, canvas.height) * 0.5 + 200;
@@ -54,15 +53,81 @@ function spawnEnergy() {
     alpha: Math.random() * 0.6 + 0.3
   });
 }
-
 setInterval(spawnEnergy, 80);
+
+// --- СЧЁТЧИК КЛИКОВ ---
+let clickCount = 0;
+const counterEl = document.createElement("div");
+counterEl.id = "click-counter";
+counterEl.style.cssText = `
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  color: rgba(255,255,255,0.55);
+  font-family: Georgia, serif;
+  font-size: 15px;
+  z-index: 20;
+  pointer-events: none;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), color 0.3s;
+  text-shadow: 0 0 10px #ff2d55;
+`;
+document.body.appendChild(counterEl);
+
+const reactions = [
+  { at: 1,   text: "1 ❤️" },
+  { at: 3,   text: "3 — уже интересно 👀" },
+  { at: 5,   text: "5 — тебе нравится? 😏" },
+  { at: 10,  text: "10 — ого 🔥" },
+  { at: 20,  text: "20 — не останавливайся 💫" },
+  { at: 50,  text: "50 — ты влюбилась? 😍" },
+  { at: 100, text: "100 ❤️‍🔥 — это уже серьёзно" },
+];
+
+function updateCounter() {
+  clickCount++;
+  const reaction = reactions.slice().reverse().find(r => clickCount >= r.at);
+  counterEl.textContent = reaction
+    ? `${clickCount} кликов · ${reaction.text}`
+    : `${clickCount} кликов ❤️`;
+
+  // Пульс на счётчике
+  counterEl.style.transform = "scale(1.35)";
+  counterEl.style.color = "rgba(255,100,140,0.95)";
+  setTimeout(() => {
+    counterEl.style.transform = "scale(1)";
+    counterEl.style.color = "rgba(255,255,255,0.55)";
+  }, 180);
+}
+
+// --- КОНФЕТТИ ---
+let confetti = [];
+const confettiColors = ["#ff2d55","#ff6b6b","#ffcc00","#a855f7","#38bdf8","#fb923c","#fff"];
+
+function spawnConfetti(cx, cy) {
+  for (let i = 0; i < 28; i++) {
+    let angle = Math.random() * Math.PI * 2;
+    let speed = Math.random() * 5 + 2;
+    confetti.push({
+      x: cx,
+      y: cy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 3,
+      size: Math.random() * 6 + 3,
+      color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+      rotation: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.3,
+      alpha: 1,
+      gravity: 0.18 + Math.random() * 0.1,
+      shape: Math.random() > 0.5 ? "rect" : "circle"
+    });
+  }
+}
 
 let angleY = 0;
 let time = 0;
 let messageShown = false;
 let clickEffects = [];
 
-// Взрыв — работает при каждом нажатии
 function addClickEffect(cx, cy) {
   clickEffects.push({ x: cx, y: cy, t: 0, max: 60 });
   particles.forEach(p => {
@@ -75,7 +140,6 @@ function addClickEffect(cx, cy) {
   });
 }
 
-// Текст — появляется один раз при первом нажатии
 function showMessage() {
   if (!messageShown) {
     messageShown = true;
@@ -86,6 +150,8 @@ function showMessage() {
 
 canvas.addEventListener("click", function(e) {
   addClickEffect(e.clientX, e.clientY);
+  spawnConfetti(e.clientX, e.clientY);
+  updateCounter();
   showMessage();
 });
 
@@ -93,6 +159,8 @@ canvas.addEventListener("touchstart", function(e) {
   e.preventDefault();
   var touch = e.touches[0];
   addClickEffect(touch.clientX, touch.clientY);
+  spawnConfetti(touch.clientX, touch.clientY);
+  updateCounter();
   showMessage();
   if (navigator.vibrate) navigator.vibrate(60);
 }, { passive: false });
@@ -113,23 +181,20 @@ function draw() {
     ctx.fill();
   });
 
-  // Энергия летит к сердцу
+  // Энергия
   var newEnergy = [];
   for (var i = 0; i < energyParticles.length; i++) {
     var p = energyParticles[i];
     var dx = canvas.width / 2 - p.x;
     var dy = canvas.height / 2 - p.y;
     var dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 30) continue; // поглощена сердцем
-
-    // Спираль к центру
+    if (dist < 30) continue;
     var nx = dx / dist;
     var ny = dy / dist;
     var perpX = -ny * 0.4;
     var perpY = nx * 0.4;
     p.x += nx * p.speed + perpX;
     p.y += ny * p.speed + perpY;
-
     var fade = Math.min(1, dist / 100);
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -139,7 +204,7 @@ function draw() {
   }
   energyParticles = newEnergy;
 
-  // Сердце вращается медленно вокруг вертикальной оси
+  // Сердце
   angleY += 0.012;
   var pulse = 1 + Math.sin(time * 1.8) * 0.07;
   var scale = Math.min(canvas.width, canvas.height) / 38;
@@ -147,30 +212,26 @@ function draw() {
   particles.forEach(function(p) {
     var rotX = p.bx * Math.cos(angleY);
     var rotZ = p.bx * Math.sin(angleY);
-
     var tx = canvas.width / 2 + rotX * scale * pulse;
     var ty = canvas.height / 2 + p.by * scale * pulse;
-
     p.vx += (tx - p.x) * 0.06;
     p.vy += (ty - p.y) * 0.06;
     p.vx *= 0.82;
     p.vy *= 0.82;
     p.x += p.vx;
     p.y += p.vy;
-
     var depth = (rotZ / 16 + 1) / 2;
     var r = Math.round(180 + depth * 75);
     var g = Math.round(20 + depth * 25);
     var b = Math.round(55 + depth * 30);
     var size = 2 + depth * 1.5;
-
     ctx.beginPath();
     ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
     ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
     ctx.fill();
   });
 
-  // Рипл при нажатиях
+  // Рипл
   var newEffects = [];
   for (var j = 0; j < clickEffects.length; j++) {
     var ef = clickEffects[j];
@@ -187,6 +248,35 @@ function draw() {
     newEffects.push(ef);
   }
   clickEffects = newEffects;
+
+  // --- КОНФЕТТИ ---
+  var newConfetti = [];
+  for (var k = 0; k < confetti.length; k++) {
+    var c = confetti[k];
+    c.vy += c.gravity;
+    c.x += c.vx;
+    c.y += c.vy;
+    c.rotation += c.rotSpeed;
+    c.alpha -= 0.018;
+    if (c.alpha <= 0) continue;
+
+    ctx.save();
+    ctx.globalAlpha = c.alpha;
+    ctx.translate(c.x, c.y);
+    ctx.rotate(c.rotation);
+    ctx.fillStyle = c.color;
+
+    if (c.shape === "rect") {
+      ctx.fillRect(-c.size / 2, -c.size / 4, c.size, c.size / 2);
+    } else {
+      ctx.beginPath();
+      ctx.arc(0, 0, c.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    newConfetti.push(c);
+  }
+  confetti = newConfetti;
 
   requestAnimationFrame(draw);
 }
