@@ -1,6 +1,6 @@
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
-const text = document.getElementById("text");
+const textElement = document.getElementById("text");
 
 function resize() {
   canvas.width = window.innerWidth;
@@ -36,7 +36,7 @@ for (let t = 0; t < Math.PI * 2; t += 0.02) {
 
 let mouse = { x: -9999, y: -9999 };
 let isExploded = false;
-let yRotationAngle = 0;
+let angleY = 0;
 let time = 0;
 
 window.addEventListener("mousemove", e => {
@@ -66,37 +66,39 @@ function update() {
   });
 
   time += 0.05;
-  yRotationAngle += 0.03;
-  let pulse = 1 + Math.sin(time * 1.5) * 0.08;
+  angleY += 0.03;
+  let pulse = 1 + Math.sin(time * 1.5) * 0.1;
 
   particles.forEach(p => {
-    let s_factor = Math.min(canvas.width, canvas.height) / 42;
+    let s_factor = Math.min(canvas.width, canvas.height) / 40;
 
-    let finalX = canvas.width / 2 + (p.bx * Math.cos(yRotationAngle)) * s_factor * pulse;
-    let finalY = canvas.height / 2 - p.by * s_factor * pulse;
+    let rotatedX = p.bx * Math.cos(angleY);
+    
+    let targetX = canvas.width / 2 + rotatedX * s_factor * pulse;
+    let targetY = canvas.height / 2 - p.by * s_factor * pulse;
 
     let dx = p.x - mouse.x;
     let dy = p.y - mouse.y;
     let dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist < 130) {
-      let f = (130 - dist) / 130;
-      p.vx += dx * f * 0.12;
-      p.vy += dy * f * 0.12;
+    if (dist < 150) {
+      let f = (150 - dist) / 150;
+      p.vx += dx * f * 0.15;
+      p.vy += dy * f * 0.15;
     }
 
-    p.vx += (finalX - p.x) * 0.035;
-    p.vy += (finalY - p.y) * 0.035;
+    p.vx += (targetX - p.x) * 0.04;
+    p.vy += (targetY - p.y) * 0.04;
 
-    p.vx *= 0.86;
-    p.vy *= 0.86;
+    p.vx *= 0.85;
+    p.vy *= 0.85;
 
     p.x += p.vx;
     p.y += p.vy;
 
     ctx.beginPath();
     ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = "#ff3b6b";
+    ctx.fillStyle = "#ff2d55";
     ctx.fill();
   });
 
@@ -111,20 +113,13 @@ window.addEventListener("click", () => {
 
   if (navigator.vibrate) navigator.vibrate(80);
 
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-
   particles.forEach(p => {
-    const dx = p.x - cx;
-    const dy = p.y - cy;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    if (d > 0) {
-      p.vx += (dx / d) * 35;
-      p.vy += (dy / d) * 35;
-    }
+    p.vx += (Math.random() - 0.5) * 60;
+    p.vy += (Math.random() - 0.5) * 60;
   });
 
   setTimeout(() => {
-    text.classList.add('show');
+    textElement.style.opacity = "1";
+    textElement.style.transform = "translate(-50%, -50%) scale(1)";
   }, 200);
 });
