@@ -52,6 +52,7 @@ window.addEventListener("mousemove", e => {
 
 let time = 0;
 let isExploded = false;
+let heartRotationAngle = 0;
 
 function update() {
   ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
@@ -71,18 +72,22 @@ function update() {
 
   time += 0.05;
   let pulse = 1 + Math.sin(time * 2) * 0.05;
+  heartRotationAngle += 0.003;
 
   particles.forEach(p => {
     let s_factor = Math.min(canvas.width, canvas.height) / 45;
 
-    let finalX = canvas.width / 2 + p.bx * s_factor * pulse;
-    let finalY = canvas.height / 2 - p.by * s_factor * pulse;
+    let rx = p.bx * Math.cos(heartRotationAngle) - p.by * Math.sin(heartRotationAngle);
+    let ry = p.bx * Math.sin(heartRotationAngle) + p.by * Math.cos(heartRotationAngle);
+
+    let finalX = canvas.width / 2 + rx * s_factor * pulse;
+    let finalY = canvas.height / 2 - ry * s_factor * pulse;
 
     let dx = p.x - mouse.x;
     let dy = p.y - mouse.y;
     let dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist < 100 && !isExploded) {
+    if (dist < 100) {
       let f = (100 - dist) / 100;
       p.vx += dx * f * 0.05;
       p.vy += dy * f * 0.05;
