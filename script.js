@@ -73,23 +73,23 @@ function update() {
   let pulse = 1 + Math.sin(time * 2) * 0.05;
 
   particles.forEach(p => {
-    let scale = Math.min(canvas.width, canvas.height) / 45;
+    let s_factor = Math.min(canvas.width, canvas.height) / 45;
 
-    let targetX = canvas.width / 2 + p.bx * scale * pulse;
-    let targetY = canvas.height / 2 - p.by * scale * pulse;
+    let finalX = canvas.width / 2 + p.bx * s_factor * pulse;
+    let finalY = canvas.height / 2 - p.by * s_factor * pulse;
 
     let dx = p.x - mouse.x;
     let dy = p.y - mouse.y;
     let dist = Math.sqrt(dx * dx + dy * dy);
 
     if (dist < 100 && !isExploded) {
-      let force = (100 - dist) / 100;
-      p.vx += dx * force * 0.05;
-      p.vy += dy * force * 0.05;
+      let f = (100 - dist) / 100;
+      p.vx += dx * f * 0.05;
+      p.vy += dy * f * 0.05;
     }
 
-    p.vx += (targetX - p.x) * 0.03;
-    p.vy += (targetY - p.y) * 0.03;
+    p.vx += (finalX - p.x) * 0.03;
+    p.vy += (finalY - p.y) * 0.03;
 
     p.vx *= 0.88;
     p.vy *= 0.88;
