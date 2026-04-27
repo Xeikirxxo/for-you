@@ -14,20 +14,16 @@ for (let i = 0; i < 150; i++) {
   stars.push({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
-    r: Math.random() * 1.2,
-    speed: Math.random() * 0.3 + 0.1,
+    r: Math.random() * 1.5,
+    speed: Math.random() * 0.4 + 0.1,
     alpha: Math.random()
   });
 }
 
 let particles = [];
-for (let t = 0; t < Math.PI * 2; t += 0.03) {
+for (let t = 0; t < Math.PI * 2; t += 0.02) {
   let x = 16 * Math.pow(Math.sin(t), 3);
-  let y = 13 * Math.cos(t) 
-        - 5 * Math.cos(2 * t) 
-        - 2 * Math.cos(3 * t) 
-        - Math.cos(4 * t);
-
+  let y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
   particles.push({
     bx: x,
     by: y,
@@ -41,21 +37,20 @@ for (let t = 0; t < Math.PI * 2; t += 0.03) {
 let mouse = { x: -9999, y: -9999 };
 let isExploded = false;
 let rotationAngle = 0;
-
-window.addEventListener("touchmove", e => {
-  mouse.x = e.touches[0].clientX;
-  mouse.y = e.touches[0].clientY;
-});
+let time = 0;
 
 window.addEventListener("mousemove", e => {
   mouse.x = e.clientX;
   mouse.y = e.clientY;
 });
 
-let time = 0;
+window.addEventListener("touchmove", e => {
+  mouse.x = e.touches[0].clientX;
+  mouse.y = e.touches[0].clientY;
+});
 
 function update() {
-  ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   stars.forEach(s => {
@@ -71,42 +66,37 @@ function update() {
   });
 
   time += 0.05;
-  rotationAngle += 0.005;
-  let pulse = 1 + Math.sin(time * 2) * 0.05;
+  rotationAngle += 0.025;
+  let pulse = 1 + Math.sin(time * 1.5) * 0.08;
 
   particles.forEach(p => {
-    let s_factor = Math.min(canvas.width, canvas.height) / 45;
+    let s_factor = Math.min(canvas.width, canvas.height) / 42;
 
-    const cosA = Math.cos(rotationAngle);
-    const sinA = Math.sin(rotationAngle);
-    const rotatedBX = p.bx * cosA - p.by * sinA;
-    const rotatedBY = p.bx * sinA + p.by * cosA;
-
-    let finalX = canvas.width / 2 + rotatedBX * s_factor * pulse;
-    let finalY = canvas.height / 2 - rotatedBY * s_factor * pulse;
+    let finalX = canvas.width / 2 + (p.bx * Math.cos(rotationAngle)) * s_factor * pulse;
+    let finalY = canvas.height / 2 - p.by * s_factor * pulse;
 
     let dx = p.x - mouse.x;
     let dy = p.y - mouse.y;
     let dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist < 100) {
-      let f = (100 - dist) / 100;
-      p.vx += dx * f * 0.06;
-      p.vy += dy * f * 0.06;
+    if (dist < 130) {
+      let f = (130 - dist) / 130;
+      p.vx += dx * f * 0.1;
+      p.vy += dy * f * 0.1;
     }
 
-    p.vx += (finalX - p.x) * 0.02;
-    p.vy += (finalY - p.y) * 0.02;
+    p.vx += (finalX - p.x) * 0.035;
+    p.vy += (finalY - p.y) * 0.035;
 
-    p.vx *= 0.90;
-    p.vy *= 0.90;
+    p.vx *= 0.86;
+    p.vy *= 0.86;
 
     p.x += p.vx;
     p.y += p.vy;
 
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 2.8, 0, Math.PI * 2);
-    ctx.fillStyle = "#ff6b8a";
+    ctx.arc(p.x, p.y, 2.3, 0, Math.PI * 2);
+    ctx.fillStyle = "#ff2d55";
     ctx.fill();
   });
 
@@ -119,24 +109,22 @@ window.addEventListener("click", () => {
   if (isExploded) return;
   isExploded = true;
 
-  if (navigator.vibrate) navigator.vibrate(100);
+  if (navigator.vibrate) navigator.vibrate(80);
 
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
 
   particles.forEach(p => {
-    const dx = p.x - centerX;
-    const dy = p.y - centerY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist > 0) {
-      const force = 30 / dist;
-      p.vx += dx * force;
-      p.vy += dy * force;
+    const dx = p.x - cx;
+    const dy = p.y - cy;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d > 0) {
+      p.vx += (dx / d) * 30;
+      p.vy += (dy / d) * 30;
     }
   });
 
   setTimeout(() => {
     text.classList.add('show');
-  }, 400);
+  }, 300);
 });

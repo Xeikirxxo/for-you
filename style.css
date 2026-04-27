@@ -3,39 +3,36 @@ body {
   background: black;
   overflow: hidden;
   touch-action: none;
-  font-family: Arial, sans-serif;
 }
 
 canvas {
   display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
 }
 
 #text {
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(0.6);
-
-  font-family: 'Great Vibes', cursive, sans-serif;
-  font-size: 6vw;
-  font-weight: 400;
-  letter-spacing: 2px;
-
-  color: #ffffff;
-
-  text-shadow:
-    0 0 10px #ff6b8a,
-    0 0 20px #ff6b8a,
-    0 0 40px #ff6b8a,
-    0 0 60px #ff6b8a,
-    0 0 80px #ff6b8a;
-
+  transform: translate(-50%, -50%) scale(0.5);
+  font-family: 'Montserrat', sans-serif;
+  text-transform: uppercase;
+  font-size: 5vw;
+  color: white;
   text-align: center;
-  width: 90%;
-
-  opacity: 0;
+  width: 100%;
+  z-index: 10;
   pointer-events: none;
-  transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+  opacity: 0;
+  transition: all 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+  text-shadow: 
+    0 0 10px #ff2d55, 
+    0 0 20px #ff2d55, 
+    0 0 40px #ff2d55,
+    0 0 80px #ff2d55;
 }
 
 #text.show {
