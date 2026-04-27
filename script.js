@@ -36,7 +36,7 @@ for (let t = 0; t < Math.PI * 2; t += 0.02) {
 
 let mouse = { x: -9999, y: -9999 };
 let isExploded = false;
-let rotationAngle = 0;
+let yRotationAngle = 0;
 let time = 0;
 
 window.addEventListener("mousemove", e => {
@@ -66,13 +66,13 @@ function update() {
   });
 
   time += 0.05;
-  rotationAngle += 0.025;
+  yRotationAngle += 0.03;
   let pulse = 1 + Math.sin(time * 1.5) * 0.08;
 
   particles.forEach(p => {
     let s_factor = Math.min(canvas.width, canvas.height) / 42;
 
-    let finalX = canvas.width / 2 + (p.bx * Math.cos(rotationAngle)) * s_factor * pulse;
+    let finalX = canvas.width / 2 + (p.bx * Math.cos(yRotationAngle)) * s_factor * pulse;
     let finalY = canvas.height / 2 - p.by * s_factor * pulse;
 
     let dx = p.x - mouse.x;
@@ -81,8 +81,8 @@ function update() {
 
     if (dist < 130) {
       let f = (130 - dist) / 130;
-      p.vx += dx * f * 0.1;
-      p.vy += dy * f * 0.1;
+      p.vx += dx * f * 0.12;
+      p.vy += dy * f * 0.12;
     }
 
     p.vx += (finalX - p.x) * 0.035;
@@ -95,8 +95,8 @@ function update() {
     p.y += p.vy;
 
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 2.3, 0, Math.PI * 2);
-    ctx.fillStyle = "#ff2d55";
+    ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#ff3b6b";
     ctx.fill();
   });
 
@@ -119,12 +119,12 @@ window.addEventListener("click", () => {
     const dy = p.y - cy;
     const d = Math.sqrt(dx * dx + dy * dy);
     if (d > 0) {
-      p.vx += (dx / d) * 30;
-      p.vy += (dy / d) * 30;
+      p.vx += (dx / d) * 35;
+      p.vy += (dy / d) * 35;
     }
   });
 
   setTimeout(() => {
     text.classList.add('show');
-  }, 300);
+  }, 200);
 });
