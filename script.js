@@ -76,8 +76,10 @@ function update() {
 
   particles.forEach(p => {
 
-    let scaleX = canvas.width / 40;
-    let scaleY = canvas.height / 40;
+    let scale = Math.min(canvas.width, canvas.height) / 40;
+
+    let targetX = canvas.width/2 + p.bx * scale * pulse;
+    let targetY = canvas.height/2 - p.by * scale * pulse;
 
     let targetX = canvas.width/2 + p.bx * scaleX * pulse;
     let targetY = canvas.height/2 - p.by * scaleY * pulse;
@@ -104,7 +106,7 @@ function update() {
     ctx.fillStyle = "#ff4d6d";
     ctx.shadowBlur = 12;
     ctx.shadowColor = "#ff4d6d";
-    ctx.font = Math.random() > 0.5 ? "12px Arial" : "10px Arial";
+    ctx.font = "11px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("I love you, Лерка", p.x, p.y);
@@ -125,9 +127,9 @@ window.addEventListener("click", () => {
   });
 
   setTimeout(() => {
-  text.innerText = "Ты мне очень нравишься ❤️";
-  text.style.opacity = 1;
-  text.style.transform = "translate(-50%, -50%) scale(1)";
-  text.style.transition = "all 0.6s ease";
-}, 500);
+    text.innerText = "Ты мне очень нравишься ❤️";
+
+    text.style.opacity = 1;
+    text.style.transform = "translate(-50%, -50%) scale(1)";
+  }, 400);
 });
