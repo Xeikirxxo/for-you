@@ -84,7 +84,8 @@ const state = {
   secretUnlocked: false,
   accepted: false,
   noFloating: false,
-  hiddenNoteOpen: false
+  hiddenNoteOpen: false,
+  hiddenNoteSeen: false
 };
 
 let titleIndex = 0;
@@ -295,7 +296,8 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     clicks: state.clicks,
     secretUnlocked: state.secretUnlocked,
-    accepted: state.accepted
+    accepted: state.accepted,
+    hiddenNoteSeen: state.hiddenNoteSeen
   }));
 }
 
@@ -309,9 +311,25 @@ function loadState() {
     state.clicks = Number(parsed.clicks) || 0;
     state.secretUnlocked = Boolean(parsed.secretUnlocked);
     state.accepted = Boolean(parsed.accepted);
+    state.hiddenNoteSeen = Boolean(parsed.hiddenNoteSeen);
   } catch (_error) {
     localStorage.removeItem(STORAGE_KEY);
   }
+}
+
+function updateHiddenNoteButton() {
+  if (state.hiddenNoteSeen) {
+    hiddenNoteBtn.disabled = true;
+    hiddenNoteBtn.textContent = "Секрет открыт";
+    hiddenNoteBtn.style.opacity = "0.45";
+    hiddenNoteBtn.style.cursor = "default";
+    return;
+  }
+
+  hiddenNoteBtn.disabled = false;
+  hiddenNoteBtn.textContent = "Секрет";
+  hiddenNoteBtn.style.opacity = "";
+  hiddenNoteBtn.style.cursor = "";
 }
 
 function revealSecretScene() {
@@ -336,11 +354,20 @@ function revealSecretScene() {
 }
 
 function showHiddenNote() {
+  if (state.hiddenNoteSeen) {
+    return false;
+  }
+
   secretPanel.classList.add("visible");
+  hint.style.opacity = "0";
   state.hiddenNoteOpen = true;
+  state.hiddenNoteSeen = true;
+  updateHiddenNoteButton();
+  saveState();
   if (state.secretUnlocked && !state.accepted) {
     questionPanel.classList.add("visible");
   }
+  return true;
 }
 
 function maybeUnlockByClicks() {
@@ -386,8 +413,9 @@ function handleCanvasClick(x, y, detail = 1) {
 
   registerHeartClick(x, y);
   if (detail >= 2) {
-    showHiddenNote();
-    spawnConfetti(x, y, 1.3);
+    if (showHiddenNote()) {
+      spawnConfetti(x, y, 1.3);
+    }
   }
 }
 
@@ -464,6 +492,7 @@ function resetExperience() {
   state.accepted = false;
   state.noFloating = false;
   state.hiddenNoteOpen = false;
+  state.hiddenNoteSeen = false;
 
   localStorage.removeItem(STORAGE_KEY);
 
@@ -493,6 +522,7 @@ function resetExperience() {
 
   updateCounterUi();
   updateTextScene(false);
+  updateHiddenNoteButton();
   hint.textContent = "Двойной клик по сердцу откроет маленький секрет.";
   resetSceneObjects();
 }
@@ -690,8 +720,9 @@ canvas.addEventListener("click", (event) => {
 canvas.addEventListener("dblclick", (event) => {
   event.preventDefault();
   if (pointInsideHeart(event.clientX, event.clientY)) {
-    showHiddenNote();
-    spawnConfetti(event.clientX, event.clientY, 1.4);
+    if (showHiddenNote()) {
+      spawnConfetti(event.clientX, event.clientY, 1.4);
+    }
   }
 });
 
@@ -712,8 +743,9 @@ document.addEventListener("mousemove", (event) => {
 });
 
 hiddenNoteBtn.addEventListener("click", () => {
-  showHiddenNote();
-  spawnRipple(canvas.width * 0.5, canvas.height * 0.34);
+  if (showHiddenNote()) {
+    spawnRipple(canvas.width * 0.5, canvas.height * 0.34);
+  }
 });
 
 panelCloseButtons.forEach((button) => {
@@ -758,9 +790,10 @@ heartPath = createHeartPath();
 resize();
 updateCounterUi();
 updateTextScene(false);
+updateHiddenNoteButton();
 
 if (state.secretUnlocked) {
-  showHiddenNote();
+  secretPanel.classList.add("visible");
   questionPanel.classList.add("visible");
   hint.textContent = "Сердце уже всё сказало. Осталось выбрать ответ.";
 }
