@@ -21,7 +21,7 @@ for (let i = 0; i < 150; i++) {
 }
 
 let particles = [];
-for (let t = 0; t < Math.PI * 2; t += 0.04) {
+for (let t = 0; t < Math.PI * 2; t += 0.03) {
   let x = 16 * Math.pow(Math.sin(t), 3);
   let y = 13 * Math.cos(t) 
         - 5 * Math.cos(2 * t) 
@@ -39,6 +39,8 @@ for (let t = 0; t < Math.PI * 2; t += 0.04) {
 }
 
 let mouse = { x: -9999, y: -9999 };
+let isExploded = false;
+let rotationAngle = 0;
 
 window.addEventListener("touchmove", e => {
   mouse.x = e.touches[0].clientX;
@@ -51,8 +53,6 @@ window.addEventListener("mousemove", e => {
 });
 
 let time = 0;
-let isExploded = false;
-let heartRotationAngle = 0;
 
 function update() {
   ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
@@ -71,17 +71,19 @@ function update() {
   });
 
   time += 0.05;
+  rotationAngle += 0.005;
   let pulse = 1 + Math.sin(time * 2) * 0.05;
-  heartRotationAngle += 0.003;
 
   particles.forEach(p => {
     let s_factor = Math.min(canvas.width, canvas.height) / 45;
 
-    let rx = p.bx * Math.cos(heartRotationAngle) - p.by * Math.sin(heartRotationAngle);
-    let ry = p.bx * Math.sin(heartRotationAngle) + p.by * Math.cos(heartRotationAngle);
+    const cosA = Math.cos(rotationAngle);
+    const sinA = Math.sin(rotationAngle);
+    const rotatedBX = p.bx * cosA - p.by * sinA;
+    const rotatedBY = p.bx * sinA + p.by * cosA;
 
-    let finalX = canvas.width / 2 + rx * s_factor * pulse;
-    let finalY = canvas.height / 2 - ry * s_factor * pulse;
+    let finalX = canvas.width / 2 + rotatedBX * s_factor * pulse;
+    let finalY = canvas.height / 2 - rotatedBY * s_factor * pulse;
 
     let dx = p.x - mouse.x;
     let dy = p.y - mouse.y;
@@ -89,22 +91,22 @@ function update() {
 
     if (dist < 100) {
       let f = (100 - dist) / 100;
-      p.vx += dx * f * 0.05;
-      p.vy += dy * f * 0.05;
+      p.vx += dx * f * 0.06;
+      p.vy += dy * f * 0.06;
     }
 
-    p.vx += (finalX - p.x) * 0.03;
-    p.vy += (finalY - p.y) * 0.03;
+    p.vx += (finalX - p.x) * 0.02;
+    p.vy += (finalY - p.y) * 0.02;
 
-    p.vx *= 0.88;
-    p.vy *= 0.88;
+    p.vx *= 0.90;
+    p.vy *= 0.90;
 
     p.x += p.vx;
     p.y += p.vy;
 
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = "#ff4d6d";
+    ctx.arc(p.x, p.y, 2.8, 0, Math.PI * 2);
+    ctx.fillStyle = "#ff6b8a";
     ctx.fill();
   });
 
@@ -119,14 +121,22 @@ window.addEventListener("click", () => {
 
   if (navigator.vibrate) navigator.vibrate(100);
 
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+
   particles.forEach(p => {
-    p.vx += (Math.random() - 0.5) * 40;
-    p.vy += (Math.random() - 0.5) * 40;
+    const dx = p.x - centerX;
+    const dy = p.y - centerY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > 0) {
+      const force = 30 / dist;
+      p.vx += dx * force;
+      p.vy += dy * force;
+    }
   });
 
   setTimeout(() => {
-    text.innerText = "Ты мне очень нравишься, Лерка ❤️";
-    text.style.opacity = 1;
-    text.style.transform = "translate(-50%, -50%) scale(1)";
+    text.classList.add('show');
   }, 400);
 });

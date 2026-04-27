@@ -16,22 +16,29 @@ canvas {
   left: 50%;
   transform: translate(-50%, -50%) scale(0.6);
 
-  font-family: 'Poiret One', cursive, sans-serif;
-  font-size: 5vw;
+  font-family: 'Great Vibes', cursive, sans-serif;
+  font-size: 6vw;
   font-weight: 400;
   letter-spacing: 2px;
 
   color: #ffffff;
 
   text-shadow:
-    0 0 10px #ff4d6d,
-    0 0 20px #ff4d6d,
-    0 0 40px #ff4d6d,
-    0 0 60px #ff4d6d;
+    0 0 10px #ff6b8a,
+    0 0 20px #ff6b8a,
+    0 0 40px #ff6b8a,
+    0 0 60px #ff6b8a,
+    0 0 80px #ff6b8a;
 
   text-align: center;
-  width: 80%;
+  width: 90%;
 
   opacity: 0;
-  transition: all 1s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  pointer-events: none;
+  transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+#text.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }
