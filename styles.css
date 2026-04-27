@@ -1,6 +1,17 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #000; overflow: hidden; cursor: pointer; }
-canvas { display: block; }
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  cursor: pointer;
+}
+canvas {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
 #message {
   position: fixed;
   top: 50%; left: 50%;
