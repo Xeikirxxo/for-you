@@ -1,47 +1,51 @@
-var canvas = document.getElementById("c");
-var ctx = canvas.getContext("2d");
-var msg = document.getElementById("message");
-var hint = document.getElementById("hint");
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+const msg = document.getElementById("message");
+const hint = document.getElementById("hint");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-window.addEventListener("resize", function() {
+function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-});
+}
+resize();
+window.addEventListener("resize", resize);
 
-var stars = [];
-for (var i = 0; i < 200; i++) {
+// Звёзды
+let stars = [];
+for (let i = 0; i < 200; i++) {
   stars.push({
-    x: Math.random(), y: Math.random(),
+    x: Math.random(),
+    y: Math.random(),
     r: Math.random() * 1.2 + 0.2,
     alpha: Math.random() * 0.7 + 0.2,
     twinkle: Math.random() * Math.PI * 2
   });
 }
 
-var heartPoints = [];
-for (var t = 0; t < Math.PI * 2; t += 0.018) {
-  var hx = 16 * Math.pow(Math.sin(t), 3);
-  var hy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+// Точки сердца
+let heartPoints = [];
+for (let t = 0; t < Math.PI * 2; t += 0.018) {
+  let hx = 16 * Math.pow(Math.sin(t), 3);
+  let hy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
   heartPoints.push({ bx: hx, by: hy });
 }
 
-var particles = [];
-for (var i = 0; i < heartPoints.length; i++) {
-  particles.push({
-    bx: heartPoints[i].bx,
-    by: heartPoints[i].by,
-    x: canvas.width / 2 + (Math.random() - 0.5) * 300,
-    y: canvas.height / 2 + (Math.random() - 0.5) * 300,
-    vx: 0, vy: 0
-  });
-}
+// Частицы сердца
+let particles = heartPoints.map(p => ({
+  bx: p.bx,
+  by: p.by,
+  x: canvas.width / 2 + (Math.random() - 0.5) * 300,
+  y: canvas.height / 2 + (Math.random() - 0.5) * 300,
+  vx: 0,
+  vy: 0
+}));
 
-var energyParticles = [];
+// Энергетические частицы летящие к сердцу
+let energyParticles = [];
+
 function spawnEnergy() {
-  var angle = Math.random() * Math.PI * 2;
-  var dist = Math.random() * Math.max(canvas.width, canvas.height) * 0.5 + 200;
+  let angle = Math.random() * Math.PI * 2;
+  let dist = Math.random() * Math.max(canvas.width, canvas.height) * 0.5 + 200;
   energyParticles.push({
     x: canvas.width / 2 + Math.cos(angle) * dist,
     y: canvas.height / 2 + Math.sin(angle) * dist,
@@ -50,31 +54,33 @@ function spawnEnergy() {
     alpha: Math.random() * 0.6 + 0.3
   });
 }
+
 setInterval(spawnEnergy, 80);
 
-var angleY = 0;
-var time = 0;
-var messageShown = false;
-var clickEffects = [];
+let angleY = 0;
+let time = 0;
+let messageShown = false;
+let clickEffects = [];
 
+// Взрыв — работает при каждом нажатии
 function addClickEffect(cx, cy) {
   clickEffects.push({ x: cx, y: cy, t: 0, max: 60 });
-  for (var i = 0; i < particles.length; i++) {
-    var p = particles[i];
-    var dx = p.x - cx;
-    var dy = p.y - cy;
-    var d = Math.sqrt(dx*dx + dy*dy);
-    var f = Math.max(0, (220 - d) / 220);
+  particles.forEach(p => {
+    let dx = p.x - cx;
+    let dy = p.y - cy;
+    let dist = Math.sqrt(dx * dx + dy * dy);
+    let f = Math.max(0, (220 - dist) / 220);
     p.vx += dx * f * 0.5;
     p.vy += dy * f * 0.5;
-  }
+  });
 }
 
+// Текст — появляется один раз при первом нажатии
 function showMessage() {
   if (!messageShown) {
     messageShown = true;
-    hint.style.opacity = "0";
-    msg.classList.add("visible");
+    hint.style.opacity = '0';
+    msg.classList.add('visible');
   }
 }
 
@@ -94,29 +100,36 @@ canvas.addEventListener("touchstart", function(e) {
 function draw() {
   ctx.fillStyle = "rgba(0,0,0,0.18)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
   time += 0.016;
 
-  for (var i = 0; i < stars.length; i++) {
-    var s = stars[i];
+  // Звёзды
+  stars.forEach(function(s) {
     s.twinkle += 0.03;
     var a = s.alpha * (0.7 + 0.3 * Math.sin(s.twinkle));
     ctx.beginPath();
     ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255,255,255," + a + ")";
     ctx.fill();
-  }
+  });
 
+  // Энергия летит к сердцу
   var newEnergy = [];
   for (var i = 0; i < energyParticles.length; i++) {
     var p = energyParticles[i];
     var dx = canvas.width / 2 - p.x;
     var dy = canvas.height / 2 - p.y;
-    var dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist < 35) continue;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 30) continue; // поглощена сердцем
+
+    // Спираль к центру
     var nx = dx / dist;
     var ny = dy / dist;
-    p.x += nx * p.speed + (-ny * 0.35);
-    p.y += ny * p.speed + (nx * 0.35);
+    var perpX = -ny * 0.4;
+    var perpY = nx * 0.4;
+    p.x += nx * p.speed + perpX;
+    p.y += ny * p.speed + perpY;
+
     var fade = Math.min(1, dist / 100);
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -126,33 +139,38 @@ function draw() {
   }
   energyParticles = newEnergy;
 
+  // Сердце вращается медленно вокруг вертикальной оси
   angleY += 0.012;
   var pulse = 1 + Math.sin(time * 1.8) * 0.07;
   var scale = Math.min(canvas.width, canvas.height) / 38;
 
-  for (var i = 0; i < particles.length; i++) {
-    var p = particles[i];
+  particles.forEach(function(p) {
     var rotX = p.bx * Math.cos(angleY);
     var rotZ = p.bx * Math.sin(angleY);
+
     var tx = canvas.width / 2 + rotX * scale * pulse;
     var ty = canvas.height / 2 + p.by * scale * pulse;
+
     p.vx += (tx - p.x) * 0.06;
     p.vy += (ty - p.y) * 0.06;
     p.vx *= 0.82;
     p.vy *= 0.82;
     p.x += p.vx;
     p.y += p.vy;
+
     var depth = (rotZ / 16 + 1) / 2;
     var r = Math.round(180 + depth * 75);
     var g = Math.round(20 + depth * 25);
     var b = Math.round(55 + depth * 30);
-    var sz = 2 + depth * 1.5;
+    var size = 2 + depth * 1.5;
+
     ctx.beginPath();
-    ctx.arc(p.x, p.y, sz, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
     ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
     ctx.fill();
-  }
+  });
 
+  // Рипл при нажатиях
   var newEffects = [];
   for (var j = 0; j < clickEffects.length; j++) {
     var ef = clickEffects[j];
