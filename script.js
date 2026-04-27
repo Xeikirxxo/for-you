@@ -10,29 +10,29 @@ resize();
 window.addEventListener("resize", resize);
 
 let stars = [];
-for (let i = 0; i < 120; i++) {
+for (let i = 0; i < 150; i++) {
   stars.push({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
-    r: Math.random() * 1.5,
-    speed: Math.random() * 0.5 + 0.2
+    r: Math.random() * 1.2,
+    speed: Math.random() * 0.3 + 0.1,
+    alpha: Math.random()
   });
 }
 
 let particles = [];
-
-for (let t = 0; t < Math.PI * 2; t += 0.03) {
+for (let t = 0; t < Math.PI * 2; t += 0.04) {
   let x = 16 * Math.pow(Math.sin(t), 3);
-  let y = 13 * Math.cos(t)
-        - 5 * Math.cos(2 * t)
-        - 2 * Math.cos(3 * t)
+  let y = 13 * Math.cos(t) 
+        - 5 * Math.cos(2 * t) 
+        - 2 * Math.cos(3 * t) 
         - Math.cos(4 * t);
 
   particles.push({
     bx: x,
     by: y,
-    x: 0,
-    y: 0,
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
     vx: 0,
     vy: 0
   });
@@ -51,11 +51,11 @@ window.addEventListener("mousemove", e => {
 });
 
 let time = 0;
+let isExploded = false;
 
 function update() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  let baseScale = Math.min(canvas.width, canvas.height) / 40;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   stars.forEach(s => {
     s.y += s.speed;
@@ -63,50 +63,44 @@ function update() {
       s.y = 0;
       s.x = Math.random() * canvas.width;
     }
-
     ctx.beginPath();
     ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-    ctx.fillStyle = "white";
+    ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
     ctx.fill();
   });
 
   time += 0.05;
-
-  let pulse = 1 + Math.sin(time * 2) * 0.1;
+  let pulse = 1 + Math.sin(time * 2) * 0.05;
 
   particles.forEach(p => {
+    let scale = Math.min(canvas.width, canvas.height) / 45;
 
-    let scale = Math.min(canvas.width, canvas.height) / 40;
-
-    let targetX = canvas.width/2 + p.bx * scale * pulse - scale * 2;
-    let targetY = canvas.height/2 - p.by * scale * pulse;
+    let targetX = canvas.width / 2 + p.bx * scale * pulse;
+    let targetY = canvas.height / 2 - p.by * scale * pulse;
 
     let dx = p.x - mouse.x;
     let dy = p.y - mouse.y;
-    let dist = Math.sqrt(dx*dx + dy*dy);
+    let dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist < 80) {
-      let force = (80 - dist) / 80;
-      p.vx += dx * force * 0.2;
-      p.vy += dy * force * 0.2;
+    if (dist < 100 && !isExploded) {
+      let force = (100 - dist) / 100;
+      p.vx += dx * force * 0.05;
+      p.vy += dy * force * 0.05;
     }
 
-    p.vx += (targetX - p.x) * 0.02;
-    p.vy += (targetY - p.y) * 0.02;
+    p.vx += (targetX - p.x) * 0.03;
+    p.vy += (targetY - p.y) * 0.03;
 
-    p.vx *= 0.9;
-    p.vy *= 0.9;
+    p.vx *= 0.88;
+    p.vy *= 0.88;
 
     p.x += p.vx;
     p.y += p.vy;
 
-    ctx.fillStyle = "#ff2e63";
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = "#ff2e63";
-    ctx.font = "11px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("I love you, Лерка", p.x, p.y);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#ff4d6d";
+    ctx.fill();
   });
 
   requestAnimationFrame(update);
@@ -115,17 +109,18 @@ function update() {
 update();
 
 window.addEventListener("click", () => {
+  if (isExploded) return;
+  isExploded = true;
 
   if (navigator.vibrate) navigator.vibrate(100);
 
   particles.forEach(p => {
-    p.vx += (Math.random() - 0.5) * 25;
-    p.vy += (Math.random() - 0.5) * 25;
+    p.vx += (Math.random() - 0.5) * 40;
+    p.vy += (Math.random() - 0.5) * 40;
   });
 
   setTimeout(() => {
-    text.innerText = "Ты мне очень нравишься";
-
+    text.innerText = "Ты мне очень нравишься, Лерка ❤️";
     text.style.opacity = 1;
     text.style.transform = "translate(-50%, -50%) scale(1)";
   }, 400);
