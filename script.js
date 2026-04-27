@@ -1,424 +1,772 @@
-const canvas = document.getElementById("c");
+const canvas = document.getElementById("scene");
 const ctx = canvas.getContext("2d");
-const msg = document.getElementById("message");
+
+const clickCounter = document.getElementById("click-counter");
+const progressFill = document.getElementById("progress-fill");
+const reactionText = document.getElementById("reaction-text");
+const mainMessage = document.getElementById("main-message");
+const subMessage = document.getElementById("sub-message");
 const hint = document.getElementById("hint");
-const secretEl = document.getElementById("secret");
-const ynWrap = document.getElementById("yn-wrap");
+const secretPanel = document.getElementById("secret-panel");
+const questionPanel = document.getElementById("question-panel");
+const finalPanel = document.getElementById("final-panel");
+const finalTitle = document.getElementById("final-title");
+const finalText = document.getElementById("final-text");
+const hiddenNoteBtn = document.getElementById("hidden-note");
+const restartBtn = document.getElementById("restart-btn");
+const buttonRow = document.getElementById("button-row");
 const btnYes = document.getElementById("btn-yes");
 const btnNo = document.getElementById("btn-no");
+const panelCloseButtons = document.querySelectorAll(".panel-close");
+
+const STORAGE_KEY = "for-you-scene-state";
+const SECRET_TARGET = 100;
+
+const titleFrames = ["For you ❤️", "For you 💘", "For you 💖", "For you 💞"];
+const stageCopy = [
+  {
+    at: 0,
+    title: "Мне давно хотелось это сказать.",
+    body: "Сделай пару кликов по сердцу. Оно не просто крутится, оно собирает смелость.",
+    reaction: "Нажми на сердце, сцена начнёт раскрываться."
+  },
+  {
+    at: 1,
+    title: "С этого всё и начинается.",
+    body: "Каждый клик добавляет свет, глубину и немного честности.",
+    reaction: "Первый шаг сделан."
+  },
+  {
+    at: 10,
+    title: "Ты умеешь делать обычный момент особенным.",
+    body: "Даже этот экран выглядит лучше, когда задерживаешься на нём чуть дольше.",
+    reaction: "10 кликов. Уже чувствуется настроение."
+  },
+  {
+    at: 25,
+    title: "Мне нравится, как рядом с тобой становится тише внутри.",
+    body: "Не скучнее. Именно тише. Будто всё встаёт на место.",
+    reaction: "25 кликов. Сцена уже не шутит."
+  },
+  {
+    at: 45,
+    title: "Ты не просто нравишься. Ты запоминаешься.",
+    body: "Такие люди не проходят фоном. Они остаются в голове и в сердце.",
+    reaction: "45 кликов. Сердце светится сильнее."
+  },
+  {
+    at: 70,
+    title: "Ещё немного, и это уже не получится скрывать.",
+    body: "Иногда самый красивый момент наступает ровно тогда, когда перестаёшь прятать главное.",
+    reaction: "70 кликов. Почти финал."
+  },
+  {
+    at: 100,
+    title: "Ладно. Теперь честно.",
+    body: "Я правда хотел сказать это красиво. И, кажется, почти получилось.",
+    reaction: "100 кликов. Вопрос открыт."
+  }
+];
+
+const counterReactions = [
+  { at: 0, text: "0 кликов" },
+  { at: 1, text: "1 клик" },
+  { at: 2, text: "2 клика" },
+  { at: 5, text: "5 кликов" },
+  { at: 10, text: "10 кликов" },
+  { at: 25, text: "25 кликов" },
+  { at: 50, text: "50 кликов" },
+  { at: 100, text: "100 кликов" }
+];
+
+const state = {
+  clicks: 0,
+  secretUnlocked: false,
+  accepted: false,
+  noFloating: false,
+  hiddenNoteOpen: false
+};
+
+let titleIndex = 0;
+let pulseTime = 0;
+let heartRotation = 0;
+let typedToken = 0;
+
+let stars = [];
+let orbiters = [];
+let floatingHearts = [];
+let sparks = [];
+let ripples = [];
+let confetti = [];
+let cursorTrail = [];
+let heartParticles = [];
+let heartPath = [];
+
+function createHeartPath() {
+  const points = [];
+  for (let t = 0; t < Math.PI * 2; t += 0.016) {
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+    points.push({ x, y });
+  }
+  return points;
+}
+
+function resetSceneObjects() {
+  stars = Array.from({ length: 220 }, () => ({
+    x: Math.random(),
+    y: Math.random(),
+    r: Math.random() * 1.4 + 0.3,
+    alpha: Math.random() * 0.6 + 0.2,
+    twinkle: Math.random() * Math.PI * 2
+  }));
+
+  orbiters = Array.from({ length: 30 }, () => ({
+    angle: Math.random() * Math.PI * 2,
+    distance: 120 + Math.random() * Math.max(canvas.width, canvas.height) * 0.4,
+    speed: 0.002 + Math.random() * 0.004,
+    size: 0.7 + Math.random() * 1.8,
+    alpha: 0.2 + Math.random() * 0.5,
+    drift: (Math.random() - 0.5) * 50
+  }));
+
+  floatingHearts = [];
+  sparks = [];
+  ripples = [];
+  confetti = [];
+  cursorTrail = [];
+
+  heartParticles = heartPath.map((point) => ({
+    baseX: point.x,
+    baseY: point.y,
+    x: canvas.width * 0.5 + (Math.random() - 0.5) * 260,
+    y: canvas.height * 0.5 + (Math.random() - 0.5) * 260,
+    vx: 0,
+    vy: 0
+  }));
+}
 
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-}
-resize();
-window.addEventListener("resize", resize);
-
-// --- АНИМИРОВАННЫЙ ЗАГОЛОВОК ВКЛАДКИ ---
-const titles = ["For you ❤️", "For you 🤍", "For you 💗", "For you 💓"];
-let titleIdx = 0;
-setInterval(() => {
-  titleIdx = (titleIdx + 1) % titles.length;
-  document.title = titles[titleIdx];
-}, 600);
-
-// Звёзды
-let stars = [];
-for (let i = 0; i < 200; i++) {
-  stars.push({
-    x: Math.random(), y: Math.random(),
-    r: Math.random() * 1.2 + 0.2,
-    alpha: Math.random() * 0.7 + 0.2,
-    twinkle: Math.random() * Math.PI * 2
-  });
+  resetSceneObjects();
+  if (state.noFloating) {
+    teleportNoButton(true);
+  }
 }
 
-// Точки сердца
-let heartPoints = [];
-for (let t = 0; t < Math.PI * 2; t += 0.018) {
-  let hx = 16 * Math.pow(Math.sin(t), 3);
-  let hy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
-  heartPoints.push({ bx: hx, by: hy });
-}
-
-// Частицы сердца
-let particles = heartPoints.map(p => ({
-  bx: p.bx, by: p.by,
-  x: canvas.width / 2 + (Math.random() - 0.5) * 300,
-  y: canvas.height / 2 + (Math.random() - 0.5) * 300,
-  vx: 0, vy: 0
-}));
-
-// Энергетические частицы
-let energyParticles = [];
-function spawnEnergy() {
-  let angle = Math.random() * Math.PI * 2;
-  let dist = Math.random() * Math.max(canvas.width, canvas.height) * 0.5 + 200;
-  energyParticles.push({
-    x: canvas.width / 2 + Math.cos(angle) * dist,
-    y: canvas.height / 2 + Math.sin(angle) * dist,
-    size: Math.random() * 1.5 + 0.5,
-    speed: Math.random() * 1.5 + 0.8,
-    alpha: Math.random() * 0.6 + 0.3
-  });
-}
-setInterval(spawnEnergy, 80);
-
-// --- ПЛАВАЮЩИЕ СЕРДЕЧКИ ---
-let floatingHearts = [];
-function spawnFloatingHeart() {
-  floatingHearts.push({
-    x: Math.random() * canvas.width,
-    y: canvas.height + 20,
-    size: Math.random() * 14 + 7,
-    speed: Math.random() * 0.8 + 0.3,
-    alpha: Math.random() * 0.5 + 0.2,
-    sway: Math.random() * Math.PI * 2,
-    swaySpeed: Math.random() * 0.02 + 0.008,
-    swayAmp: Math.random() * 30 + 10
-  });
-}
-setInterval(spawnFloatingHeart, 600);
-
-function drawHeart(x, y, size, alpha, color) {
+function drawHeartShape(x, y, size, alpha, color) {
   ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size, size);
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = color || "#ff2d55";
+  ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.moveTo(x, y + size * 0.3);
-  ctx.bezierCurveTo(x, y, x - size, y, x - size, y + size * 0.4);
-  ctx.bezierCurveTo(x - size, y + size * 0.9, x, y + size * 1.3, x, y + size * 1.6);
-  ctx.bezierCurveTo(x, y + size * 1.3, x + size, y + size * 0.9, x + size, y + size * 0.4);
-  ctx.bezierCurveTo(x + size, y, x, y, x, y + size * 0.3);
+  ctx.moveTo(0, 0.3);
+  ctx.bezierCurveTo(0, 0, -1, 0, -1, 0.42);
+  ctx.bezierCurveTo(-1, 0.95, 0, 1.35, 0, 1.7);
+  ctx.bezierCurveTo(0, 1.35, 1, 0.95, 1, 0.42);
+  ctx.bezierCurveTo(1, 0, 0, 0, 0, 0.3);
   ctx.fill();
   ctx.restore();
 }
 
-// --- СЛЕД КУРСОРА ---
-let trail = [];
-let mouseX = -999, mouseY = -999;
-const trailTypes = ["spark", "heart"];
+function spawnFloatingHeart() {
+  floatingHearts.push({
+    x: Math.random() * canvas.width,
+    y: canvas.height + 30,
+    size: 8 + Math.random() * 16,
+    speed: 0.3 + Math.random() * 0.7,
+    alpha: 0.16 + Math.random() * 0.4,
+    sway: Math.random() * Math.PI * 2,
+    swaySpeed: 0.006 + Math.random() * 0.012,
+    swayAmp: 12 + Math.random() * 34
+  });
+}
 
-document.addEventListener("mousemove", function(e) {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-  for (let i = 0; i < 2; i++) {
-    trail.push({
-      x: mouseX + (Math.random() - 0.5) * 8,
-      y: mouseY + (Math.random() - 0.5) * 8,
-      vx: (Math.random() - 0.5) * 1.5,
-      vy: -Math.random() * 1.5 - 0.5,
-      size: Math.random() * 5 + 2,
-      alpha: 0.8 + Math.random() * 0.2,
-      type: Math.random() > 0.6 ? "heart" : "spark",
-      color: Math.random() > 0.5 ? "#ff2d55" : "#ffcc00",
-      gravity: 0.05
+function spawnSparkBurst(x, y, intensity = 1) {
+  const count = Math.round(18 * intensity);
+  for (let i = 0; i < count; i += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1 + Math.random() * 5 * intensity;
+    sparks.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 40 + Math.random() * 20,
+      age: 0,
+      color: Math.random() > 0.3 ? "#4ac8ff" : "#c9f7ff"
     });
   }
-});
+}
 
-// --- СЧЁТЧИК КЛИКОВ ---
-let clickCount = 0;
-const counterEl = document.createElement("div");
-counterEl.id = "click-counter";
-counterEl.style.cssText = `
-  position: fixed; top: 20px; right: 24px;
-  color: rgba(255,255,255,0.55);
-  font-family: Georgia, serif; font-size: 15px;
-  z-index: 20; pointer-events: none;
-  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), color 0.3s;
-  text-shadow: 0 0 10px #ff2d55;
-`;
-document.body.appendChild(counterEl);
-
-const reactions = [
-  { at: 1,   text: "1 ❤️" },
-  { at: 3,   text: "3 — уже интересно 👀" },
-  { at: 5,   text: "5 — тебе нравится? 😏" },
-  { at: 10,  text: "10 — ого 🔥" },
-  { at: 20,  text: "20 — не останавливайся 💫" },
-  { at: 50,  text: "50 — ты влюбилась? 😍" },
-  { at: 100, text: "100 ❤️‍🔥 — это уже серьёзно" },
-];
-
-let secretShown = false;
-
-function updateCounter() {
-  clickCount++;
-
-  // Секретное послание после 100 кликов
-  if (clickCount >= 100 && !secretShown) {
-    secretShown = true;
-    msg.style.opacity = '0';
-    setTimeout(() => {
-      msg.style.display = 'none';
-      secretEl.classList.add('visible');
-      ynWrap.classList.add('visible');
-    }, 800);
+function spawnConfetti(x, y, intensity = 1) {
+  const count = Math.round(30 * intensity);
+  const colors = ["#36a9ff", "#69d8ff", "#a6efff", "#d3fbff", "#ffffff"];
+  for (let i = 0; i < count; i += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 5 * intensity;
+    confetti.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      gravity: 0.11 + Math.random() * 0.08,
+      size: 3 + Math.random() * 6,
+      alpha: 0.9,
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 0.3,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    });
   }
-
-  const reaction = reactions.slice().reverse().find(r => clickCount >= r.at);
-  counterEl.textContent = reaction
-    ? `${clickCount} кликов · ${reaction.text}`
-    : `${clickCount} кликов ❤️`;
-  counterEl.style.transform = "scale(1.35)";
-  counterEl.style.color = "rgba(255,100,140,0.95)";
-  setTimeout(() => {
-    counterEl.style.transform = "scale(1)";
-    counterEl.style.color = "rgba(255,255,255,0.55)";
-  }, 180);
 }
 
-// --- СМЕНА ФОНА ---
-const bgStages = [
-  { at: 0,   r: 0,  g: 0,  b: 0  },
-  { at: 10,  r: 30, g: 0,  b: 10 },
-  { at: 30,  r: 25, g: 0,  b: 35 },
-  { at: 60,  r: 0,  g: 5,  b: 35 },
-  { at: 100, r: 40, g: 0,  b: 25 },
-];
-let currentBg = { r: 0, g: 0, b: 0 };
-let targetBg  = { r: 0, g: 0, b: 0 };
-
-function updateBgTarget() {
-  const stage = bgStages.slice().reverse().find(s => clickCount >= s.at);
-  if (stage) targetBg = { r: stage.r, g: stage.g, b: stage.b };
+function spawnRipple(x, y, big = false) {
+  ripples.push({
+    x,
+    y,
+    radius: 0,
+    max: big ? 220 : 150,
+    alpha: big ? 0.85 : 0.62
+  });
 }
 
-// --- ЭФФЕКТ ПЕЧАТАНИЯ ---
-const fullText = "Ты мне очень нравишься, Лера ❤️";
-let typedIndex = 0;
-let typingStarted = false;
+function pointInsideHeart(px, py) {
+  const scale = Math.min(canvas.width, canvas.height) / 32;
+  const cx = canvas.width * 0.5;
+  const cy = canvas.height * 0.5;
+  const hx = (px - cx) / scale;
+  const hy = -(py - cy) / scale;
+  const equation = Math.pow(hx * hx + hy * hy - 1, 3) - (hx * hx * Math.pow(hy, 3));
+  return equation <= 0.42;
+}
 
-function startTyping() {
-  if (typingStarted) return;
-  typingStarted = true;
-  msg.textContent = "";
-  msg.classList.add('visible');
-  function typeNext() {
-    if (typedIndex < fullText.length) {
-      msg.textContent += fullText[typedIndex];
-      typedIndex++;
-      setTimeout(typeNext, 60 + Math.random() * 40);
+function getCurrentStage() {
+  let current = stageCopy[0];
+  for (const stage of stageCopy) {
+    if (state.clicks >= stage.at) {
+      current = stage;
     }
   }
+  return current;
+}
+
+function setTypeText(element, text) {
+  typedToken += 1;
+  const token = typedToken;
+  element.textContent = "";
+  let index = 0;
+
+  function typeNext() {
+    if (token !== typedToken) {
+      return;
+    }
+    if (index >= text.length) {
+      element.textContent = text;
+      return;
+    }
+    element.textContent += text[index];
+    index += 1;
+    setTimeout(typeNext, 12 + Math.random() * 26);
+  }
+
   typeNext();
 }
 
-function showMessage() {
-  if (!typingStarted) {
-    hint.style.opacity = '0';
-    startTyping();
+function updateTextScene(forceType = false) {
+  const stage = getCurrentStage();
+  if (forceType) {
+    setTypeText(mainMessage, stage.title);
+  } else {
+    mainMessage.textContent = stage.title;
+  }
+  subMessage.textContent = stage.body;
+  reactionText.textContent = stage.reaction;
+}
+
+function updateCounterUi() {
+  const label = counterReactions.slice().reverse().find((item) => state.clicks >= item.at) || counterReactions[0];
+  clickCounter.textContent = `${label.text} · ${Math.min(state.clicks, SECRET_TARGET)}/${SECRET_TARGET}`;
+  progressFill.style.width = `${Math.min(state.clicks / SECRET_TARGET, 1) * 100}%`;
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    clicks: state.clicks,
+    secretUnlocked: state.secretUnlocked,
+    accepted: state.accepted
+  }));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    state.clicks = Number(parsed.clicks) || 0;
+    state.secretUnlocked = Boolean(parsed.secretUnlocked);
+    state.accepted = Boolean(parsed.accepted);
+  } catch (_error) {
+    localStorage.removeItem(STORAGE_KEY);
   }
 }
 
-// --- КОНФЕТТИ ---
-let confetti = [];
-const confettiColors = ["#ff2d55","#ff6b6b","#ffcc00","#a855f7","#38bdf8","#fb923c","#fff"];
+function revealSecretScene() {
+  if (state.secretUnlocked) {
+    secretPanel.classList.add("visible");
+    questionPanel.classList.add("visible");
+    hint.textContent = "Сердце уже всё сказало. Осталось выбрать ответ.";
+    return;
+  }
 
-function spawnConfetti(cx, cy) {
-  for (let i = 0; i < 28; i++) {
-    let angle = Math.random() * Math.PI * 2;
-    let speed = Math.random() * 5 + 2;
-    confetti.push({
-      x: cx, y: cy,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 3,
-      size: Math.random() * 6 + 3,
-      color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
-      rotation: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.3,
-      alpha: 1,
-      gravity: 0.18 + Math.random() * 0.1,
-      shape: Math.random() > 0.5 ? "rect" : "circle"
-    });
+  if (state.clicks < SECRET_TARGET) {
+    return;
+  }
+
+  state.secretUnlocked = true;
+  secretPanel.classList.add("visible");
+  questionPanel.classList.add("visible");
+  hint.textContent = "Сердце уже всё сказало. Осталось выбрать ответ.";
+  spawnConfetti(canvas.width * 0.5, canvas.height * 0.45, 1.6);
+  spawnRipple(canvas.width * 0.5, canvas.height * 0.5, true);
+  saveState();
+}
+
+function showHiddenNote() {
+  secretPanel.classList.add("visible");
+  state.hiddenNoteOpen = true;
+  if (state.secretUnlocked && !state.accepted) {
+    questionPanel.classList.add("visible");
   }
 }
 
-let angleY = 0;
-let time = 0;
-let clickEffects = [];
-
-function addClickEffect(cx, cy) {
-  clickEffects.push({ x: cx, y: cy, t: 0, max: 60 });
-  particles.forEach(p => {
-    let dx = p.x - cx, dy = p.y - cy;
-    let dist = Math.sqrt(dx*dx + dy*dy);
-    let f = Math.max(0, (220 - dist) / 220);
-    p.vx += dx * f * 0.5;
-    p.vy += dy * f * 0.5;
-  });
+function maybeUnlockByClicks() {
+  if (state.clicks >= SECRET_TARGET) {
+    revealSecretScene();
+  }
 }
 
-canvas.addEventListener("click", function(e) {
-  addClickEffect(e.clientX, e.clientY);
-  spawnConfetti(e.clientX, e.clientY);
-  updateCounter();
-  updateBgTarget();
-  showMessage();
-});
-
-canvas.addEventListener("touchstart", function(e) {
-  e.preventDefault();
-  var touch = e.touches[0];
-  addClickEffect(touch.clientX, touch.clientY);
-  spawnConfetti(touch.clientX, touch.clientY);
-  updateCounter();
-  updateBgTarget();
-  showMessage();
-  if (navigator.vibrate) navigator.vibrate(60);
-}, { passive: false });
-
-// --- КНОПКА ДА / НЕТ ---
-btnYes.addEventListener("click", function() {
-  ynWrap.innerHTML = `<div id="yn-label" style="font-size:clamp(18px,3vw,36px);color:#fff;text-shadow:0 0 20px #ff2d55">
-    Я так и знал 💖<br><span style="font-size:0.6em;opacity:0.7">ты лучшая ❤️</span>
-  </div>`;
-  spawnConfetti(window.innerWidth / 2, window.innerHeight / 2);
-  setTimeout(() => spawnConfetti(window.innerWidth / 2, window.innerHeight / 2), 300);
-  setTimeout(() => spawnConfetti(window.innerWidth / 2, window.innerHeight / 2), 600);
-});
-
-// Кнопка "Нет" убегает
-btnNo.addEventListener("mouseover", runAway);
-btnNo.addEventListener("touchstart", function(e) {
-  e.stopPropagation();
-  runAway();
-});
-
-function runAway() {
-  const margin = 80;
-  const x = margin + Math.random() * (window.innerWidth - margin * 2);
-  const y = margin + Math.random() * (window.innerHeight - margin * 2);
-  btnNo.style.left = x + "px";
-  btnNo.style.top  = y + "px";
+function pushHeartParticles(x, y) {
+  for (const particle of heartParticles) {
+    const dx = particle.x - x;
+    const dy = particle.y - y;
+    const distance = Math.hypot(dx, dy);
+    const force = Math.max(0, (220 - distance) / 220);
+    particle.vx += dx * force * 0.03;
+    particle.vy += dy * force * 0.03;
+  }
 }
 
-function lerpColor(a, b, t) {
-  return {
-    r: Math.round(a.r + (b.r - a.r) * t),
-    g: Math.round(a.g + (b.g - a.g) * t),
-    b: Math.round(a.b + (b.b - a.b) * t),
-  };
+function registerHeartClick(x, y) {
+  state.clicks += 1;
+  updateCounterUi();
+  updateTextScene(true);
+  maybeUnlockByClicks();
+  saveState();
+  spawnSparkBurst(x, y, 1);
+  spawnConfetti(x, y, 0.8);
+  spawnRipple(x, y);
+  pushHeartParticles(x, y);
 }
 
-function draw() {
-  currentBg = lerpColor(currentBg, targetBg, 0.02);
-  ctx.fillStyle = `rgba(${currentBg.r},${currentBg.g},${currentBg.b},0.18)`;
+function handleCanvasClick(x, y, detail = 1) {
+  if (state.accepted) {
+    spawnConfetti(x, y, 0.4);
+    spawnRipple(x, y);
+    return;
+  }
+
+  if (!pointInsideHeart(x, y)) {
+    spawnRipple(x, y);
+    return;
+  }
+
+  registerHeartClick(x, y);
+  if (detail >= 2) {
+    showHiddenNote();
+    spawnConfetti(x, y, 1.3);
+  }
+}
+
+function showFinalScene() {
+  state.accepted = true;
+  document.body.classList.add("final-state");
+  questionPanel.classList.remove("visible");
+  btnNo.remove();
+  finalTitle.textContent = "Я так и знал.";
+  finalText.textContent = "Ты сделала этот экран ещё теплее. Это был лучший клик во всей сцене.";
+  finalPanel.classList.add("visible");
+  hint.textContent = "Финал открыт. Можно перезапустить сцену и пройти её заново.";
+  spawnConfetti(canvas.width * 0.5, canvas.height * 0.46, 2.8);
+  spawnSparkBurst(canvas.width * 0.5, canvas.height * 0.45, 2);
+  spawnRipple(canvas.width * 0.5, canvas.height * 0.48, true);
+  saveState();
+}
+
+function teleportNoButton(force = false) {
+  if (!state.secretUnlocked || state.accepted) {
+    return;
+  }
+
+  const rect = btnNo.getBoundingClientRect();
+  const yesRect = btnYes.getBoundingClientRect();
+  const margin = 24;
+
+  if (!state.noFloating) {
+    state.noFloating = true;
+    document.body.appendChild(btnNo);
+    btnNo.classList.add("no-floating");
+    btnNo.style.width = `${Math.max(rect.width, 130)}px`;
+    buttonRow.style.minHeight = `${Math.max(rect.height, yesRect.height, 48)}px`;
+  }
+
+  const maxX = window.innerWidth - rect.width - margin;
+  const maxY = window.innerHeight - rect.height - margin;
+
+  let x = margin;
+  let y = margin;
+  let tries = 0;
+
+  while (tries < 40) {
+    tries += 1;
+    x = margin + Math.random() * Math.max(1, maxX - margin);
+    y = margin + Math.random() * Math.max(1, maxY - margin);
+
+    const overlapYes =
+      x < yesRect.right + 80 &&
+      x + rect.width > yesRect.left - 80 &&
+      y < yesRect.bottom + 80 &&
+      y + rect.height > yesRect.top - 80;
+
+    const overlapHud =
+      x + rect.width > window.innerWidth - 360 &&
+      y < 230;
+
+    if (!overlapYes && !overlapHud) {
+      break;
+    }
+  }
+
+  if (!force) {
+    spawnSparkBurst(x + rect.width * 0.5, y + rect.height * 0.5, 0.8);
+  }
+
+  btnNo.style.left = `${x}px`;
+  btnNo.style.top = `${y}px`;
+}
+
+function resetExperience() {
+  state.clicks = 0;
+  state.secretUnlocked = false;
+  state.accepted = false;
+  state.noFloating = false;
+  state.hiddenNoteOpen = false;
+
+  localStorage.removeItem(STORAGE_KEY);
+
+  document.body.classList.remove("final-state");
+  finalPanel.classList.remove("visible");
+  questionPanel.classList.remove("visible");
+  secretPanel.classList.remove("visible");
+
+  if (!btnNo.isConnected) {
+    buttonRow.appendChild(btnNo);
+  }
+
+  btnNo.className = "secondary-btn";
+  btnNo.style.left = "";
+  btnNo.style.top = "";
+  btnNo.style.width = "";
+
+  if (!buttonRow.contains(btnYes)) {
+    buttonRow.prepend(btnYes);
+  }
+
+  if (!buttonRow.contains(btnNo)) {
+    buttonRow.appendChild(btnNo);
+  }
+
+  buttonRow.style.minHeight = "";
+
+  updateCounterUi();
+  updateTextScene(false);
+  hint.textContent = "Двойной клик по сердцу откроет маленький секрет.";
+  resetSceneObjects();
+}
+
+function drawBackground() {
+  const gradient = ctx.createRadialGradient(
+    canvas.width * 0.5,
+    canvas.height * 0.5,
+    canvas.height * 0.05,
+    canvas.width * 0.5,
+    canvas.height * 0.5,
+    canvas.height * 0.65
+  );
+
+  gradient.addColorStop(0, state.accepted ? "rgba(118, 232, 255, 0.16)" : "rgba(74, 194, 255, 0.08)");
+  gradient.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
 
-  time += 0.016;
-
-  // Звёзды
-  stars.forEach(s => {
-    s.twinkle += 0.03;
-    let a = s.alpha * (0.7 + 0.3 * Math.sin(s.twinkle));
+function drawStars() {
+  for (const star of stars) {
+    star.twinkle += 0.025;
+    const alpha = star.alpha * (0.72 + Math.sin(star.twinkle) * 0.28);
     ctx.beginPath();
-    ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255," + a + ")";
+    ctx.arc(star.x * canvas.width, star.y * canvas.height, star.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(234, 248, 255, ${alpha})`;
     ctx.fill();
-  });
+  }
+}
 
-  // Плавающие сердечки
-  floatingHearts = floatingHearts.filter(h => {
-    h.y -= h.speed;
-    h.sway += h.swaySpeed;
-    let hx = h.x + Math.sin(h.sway) * h.swayAmp;
-    if (h.y + h.size * 2 < 0) return false;
-    drawHeart(hx, h.y, h.size, h.alpha, "#ff2d55");
-    return true;
-  });
+function drawOrbiters() {
+  const cx = canvas.width * 0.5;
+  const cy = canvas.height * 0.5;
 
-  // Энергия
-  energyParticles = energyParticles.filter(p => {
-    let dx = canvas.width / 2 - p.x;
-    let dy = canvas.height / 2 - p.y;
-    let dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist < 30) return false;
-    let nx = dx / dist, ny = dy / dist;
-    p.x += nx * p.speed - ny * 0.4;
-    p.y += ny * p.speed + nx * 0.4;
-    let fade = Math.min(1, dist / 100);
+  for (const orbiter of orbiters) {
+    orbiter.angle += orbiter.speed;
+    const x = cx + Math.cos(orbiter.angle) * orbiter.distance;
+    const y = cy + Math.sin(orbiter.angle * 1.6) * (orbiter.distance * 0.38) + orbiter.drift;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,80,120," + (p.alpha * fade) + ")";
+    ctx.arc(x, y, orbiter.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(87, 214, 255, ${orbiter.alpha})`;
     ctx.fill();
-    return true;
+  }
+}
+
+function drawFloatingHearts() {
+  if (Math.random() > 0.92) {
+    spawnFloatingHeart();
+  }
+
+  floatingHearts = floatingHearts.filter((heart) => {
+    heart.y -= heart.speed;
+    heart.sway += heart.swaySpeed;
+    const x = heart.x + Math.sin(heart.sway) * heart.swayAmp;
+    drawHeartShape(x, heart.y, heart.size, heart.alpha, "#52cfff");
+    return heart.y > -60;
   });
+}
 
-  // Сердце
-  angleY += 0.012;
-  let pulse = 1 + Math.sin(time * 1.8) * 0.07;
-  let scale = Math.min(canvas.width, canvas.height) / 38;
+function drawHeartParticles() {
+  const cx = canvas.width * 0.5;
+  const cy = canvas.height * 0.5;
+  const scale = Math.min(canvas.width, canvas.height) / 36;
+  const pulse = 1 + Math.sin(pulseTime * 1.9) * 0.055;
 
-  particles.forEach(p => {
-    let rotX = p.bx * Math.cos(angleY);
-    let rotZ = p.bx * Math.sin(angleY);
-    let tx = canvas.width / 2 + rotX * scale * pulse;
-    let ty = canvas.height / 2 + p.by * scale * pulse;
-    p.vx += (tx - p.x) * 0.06;
-    p.vy += (ty - p.y) * 0.06;
-    p.vx *= 0.82; p.vy *= 0.82;
-    p.x += p.vx; p.y += p.vy;
-    let depth = (rotZ / 16 + 1) / 2;
-    let r = Math.round(180 + depth * 75);
-    let g = Math.round(20 + depth * 25);
-    let b = Math.round(55 + depth * 30);
+  heartRotation += 0.01;
+  pulseTime += 0.016;
+
+  const glow = ctx.createRadialGradient(cx, cy, scale * 2, cx, cy, scale * 18);
+  glow.addColorStop(0, state.accepted ? "rgba(186, 245, 255, 0.24)" : "rgba(91, 206, 255, 0.18)");
+  glow.addColorStop(1, "rgba(91, 206, 255, 0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(cx - scale * 22, cy - scale * 20, scale * 44, scale * 40);
+
+  for (const particle of heartParticles) {
+    const rotX = particle.baseX * Math.cos(heartRotation);
+    const rotZ = particle.baseX * Math.sin(heartRotation);
+    const targetX = cx + rotX * scale * pulse;
+    const targetY = cy + particle.baseY * scale * pulse;
+
+    particle.vx += (targetX - particle.x) * 0.06;
+    particle.vy += (targetY - particle.y) * 0.06;
+    particle.vx *= 0.84;
+    particle.vy *= 0.84;
+    particle.x += particle.vx;
+    particle.y += particle.vy;
+
+    const depth = (rotZ / 16 + 1) * 0.5;
+    const radius = 1.7 + depth * 1.8;
+    const hue = state.accepted
+      ? `rgba(${192 + depth * 30}, ${235 + depth * 18}, 255, 0.96)`
+      : `rgba(${80 + depth * 30}, ${195 + depth * 40}, 255, 0.94)`;
+
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 2 + depth * 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.arc(particle.x, particle.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = hue;
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = state.accepted ? "rgba(186, 245, 255, 0.62)" : "rgba(78, 205, 255, 0.62)";
     ctx.fill();
-  });
+    ctx.shadowBlur = 0;
+  }
+}
 
-  // Рипл
-  clickEffects = clickEffects.filter(ef => {
-    ef.t++;
-    if (ef.t >= ef.max) return false;
-    let progress = ef.t / ef.max;
+function drawRipples() {
+  ripples = ripples.filter((ripple) => {
+    ripple.radius += 3.8;
+    ripple.alpha *= 0.96;
     ctx.beginPath();
-    ctx.arc(ef.x, ef.y, progress * 140, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255,45,85," + (1 - progress) * 0.7 + ")";
+    ctx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(165, 234, 255, ${ripple.alpha})`;
     ctx.lineWidth = 2;
     ctx.stroke();
-    return true;
+    return ripple.radius < ripple.max && ripple.alpha > 0.02;
   });
-
-  // Конфетти
-  confetti = confetti.filter(c => {
-    c.vy += c.gravity; c.x += c.vx; c.y += c.vy;
-    c.rotation += c.rotSpeed; c.alpha -= 0.018;
-    if (c.alpha <= 0) return false;
-    ctx.save();
-    ctx.globalAlpha = c.alpha;
-    ctx.translate(c.x, c.y);
-    ctx.rotate(c.rotation);
-    ctx.fillStyle = c.color;
-    if (c.shape === "rect") ctx.fillRect(-c.size/2, -c.size/4, c.size, c.size/2);
-    else { ctx.beginPath(); ctx.arc(0, 0, c.size/2, 0, Math.PI*2); ctx.fill(); }
-    ctx.restore();
-    return true;
-  });
-
-  // --- СЛЕД КУРСОРА ---
-  trail = trail.filter(p => {
-    p.x += p.vx; p.y += p.vy; p.vy += p.gravity;
-    p.alpha -= 0.03;
-    if (p.alpha <= 0) return false;
-    ctx.save();
-    ctx.globalAlpha = p.alpha;
-    if (p.type === "heart") {
-      drawHeart(p.x, p.y, p.size * 0.5, 1, p.color);
-    } else {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * 0.4, 0, Math.PI * 2);
-      ctx.fillStyle = p.color;
-      ctx.fill();
-    }
-    ctx.restore();
-    return true;
-  });
-
-  requestAnimationFrame(draw);
 }
 
-draw();
+function drawSparks() {
+  sparks = sparks.filter((spark) => {
+    spark.age += 1;
+    spark.x += spark.vx;
+    spark.y += spark.vy;
+    spark.vx *= 0.98;
+    spark.vy *= 0.98;
+    const alpha = 1 - spark.age / spark.life;
+    ctx.beginPath();
+    ctx.arc(spark.x, spark.y, 1.6, 0, Math.PI * 2);
+    ctx.fillStyle = spark.color.replace(")", `, ${Math.max(alpha, 0)})`).replace("rgb", "rgba");
+    ctx.fillStyle = spark.color.startsWith("#") ? spark.color : spark.fillStyle;
+    ctx.globalAlpha = Math.max(alpha, 0);
+    ctx.fillStyle = spark.color;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    return spark.age < spark.life;
+  });
+}
+
+function drawConfetti() {
+  confetti = confetti.filter((piece) => {
+    piece.vy += piece.gravity;
+    piece.x += piece.vx;
+    piece.y += piece.vy;
+    piece.rotation += piece.rotationSpeed;
+    piece.alpha -= 0.012;
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(piece.alpha, 0);
+    ctx.translate(piece.x, piece.y);
+    ctx.rotate(piece.rotation);
+    ctx.fillStyle = piece.color;
+    ctx.fillRect(-piece.size * 0.5, -piece.size * 0.18, piece.size, piece.size * 0.36);
+    ctx.restore();
+
+    return piece.alpha > 0 && piece.y < canvas.height + 80;
+  });
+}
+
+function drawCursorTrail() {
+  cursorTrail = cursorTrail.filter((item) => {
+    item.life -= 1;
+    item.x += item.vx;
+    item.y += item.vy;
+    item.vy += 0.01;
+    const alpha = item.life / item.maxLife;
+    if (item.type === "heart") {
+      drawHeartShape(item.x, item.y, item.size, alpha * 0.9, "#72ddff");
+    } else {
+      ctx.beginPath();
+      ctx.arc(item.x, item.y, item.size * 0.45, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(213, 247, 255, ${alpha})`;
+      ctx.fill();
+    }
+    return item.life > 0;
+  });
+}
+
+function loop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBackground();
+  drawStars();
+  drawOrbiters();
+  drawFloatingHearts();
+  drawHeartParticles();
+  drawRipples();
+  drawSparks();
+  drawConfetti();
+  drawCursorTrail();
+  requestAnimationFrame(loop);
+}
+
+canvas.addEventListener("click", (event) => {
+  handleCanvasClick(event.clientX, event.clientY, event.detail);
+});
+
+canvas.addEventListener("dblclick", (event) => {
+  event.preventDefault();
+  if (pointInsideHeart(event.clientX, event.clientY)) {
+    showHiddenNote();
+    spawnConfetti(event.clientX, event.clientY, 1.4);
+  }
+});
+
+document.addEventListener("mousemove", (event) => {
+  if (cursorTrail.length > 40) {
+    cursorTrail.shift();
+  }
+  cursorTrail.push({
+    x: event.clientX + (Math.random() - 0.5) * 6,
+    y: event.clientY + (Math.random() - 0.5) * 6,
+    vx: (Math.random() - 0.5) * 0.7,
+    vy: -Math.random() * 0.8,
+    size: 4 + Math.random() * 3,
+    type: Math.random() > 0.45 ? "spark" : "heart",
+    life: 24 + Math.random() * 10,
+    maxLife: 32
+  });
+});
+
+hiddenNoteBtn.addEventListener("click", () => {
+  showHiddenNote();
+  spawnRipple(canvas.width * 0.5, canvas.height * 0.34);
+});
+
+panelCloseButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const panelId = button.dataset.closePanel;
+    const panel = document.getElementById(panelId);
+    if (!panel) {
+      return;
+    }
+
+    panel.classList.remove("visible");
+
+    if (panelId === "secret-panel") {
+      state.hiddenNoteOpen = false;
+    }
+  });
+});
+
+btnYes.addEventListener("click", () => {
+  showFinalScene();
+});
+
+btnNo.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  teleportNoButton();
+});
+
+restartBtn.addEventListener("click", () => {
+  resetExperience();
+});
+
+window.addEventListener("resize", resize);
+
+setInterval(() => {
+  titleIndex = (titleIndex + 1) % titleFrames.length;
+  document.title = titleFrames[titleIndex];
+}, 900);
+
+loadState();
+heartPath = createHeartPath();
+resize();
+updateCounterUi();
+updateTextScene(false);
+
+if (state.secretUnlocked) {
+  showHiddenNote();
+  questionPanel.classList.add("visible");
+  hint.textContent = "Сердце уже всё сказало. Осталось выбрать ответ.";
+}
+
+if (state.accepted) {
+  showFinalScene();
+}
+
+loop();

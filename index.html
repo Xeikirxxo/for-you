@@ -4,23 +4,59 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>For you ❤️</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<canvas id="c"></canvas>
-<div id="message">Ты мне очень нравишься, Лера ❤️</div>
-<div id="hint">нажми на сердце</div>
-<div id="secret">
-  💌 я думал об этом давно...<br>
-  ты особенная, Лера ❤️‍🔥
-</div>
-<div id="yn-wrap">
-  <div id="yn-label">Ты мне нравишься. Я тебе? 🥺</div>
-  <div id="yn-buttons">
-    <button id="btn-yes">Да 💕</button>
-    <button id="btn-no">Нет</button>
-  </div>
-</div>
-<script src="script.js"></script>
+  <canvas id="scene"></canvas>
+
+  <div class="background-glow"></div>
+  <div class="background-noise"></div>
+
+  <main id="ui">
+    <section id="hud" class="panel">
+      <div class="hud-row">
+        <span class="hud-label">Отклик</span>
+        <span id="click-counter">0 кликов</span>
+      </div>
+      <div class="progress-track">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <div id="reaction-text" class="reaction-text">Нажми на сердце, сцена начнёт раскрываться.</div>
+    </section>
+
+    <section id="hero">
+      <div id="hero-badge" class="hero-badge">для тебя</div>
+      <h1 id="main-message">Мне давно хотелось это сказать.</h1>
+      <p id="sub-message">Сделай пару кликов по сердцу. Оно не просто крутится, оно собирает смелость.</p>
+      <button id="hidden-note" type="button" class="ghost-chip">Секрет</button>
+    </section>
+
+    <div id="hint" class="hint">Двойной клик по сердцу откроет маленький секрет.</div>
+
+    <section id="secret-panel" class="panel hidden">
+      <button type="button" class="panel-close" data-close-panel="secret-panel" aria-label="Скрыть секрет">×</button>
+      <p class="secret-kicker">💌 Я думал об этом давно</p>
+      <p class="secret-text">Ты особенная, Лера. Рядом с тобой всё ощущается ярче.</p>
+    </section>
+
+    <section id="question-panel" class="panel hidden">
+      <button type="button" class="panel-close" data-close-panel="question-panel" aria-label="Скрыть вопрос">×</button>
+      <p id="question-text" class="question-text">Ты мне нравишься. Я тебе тоже?</p>
+      <div id="button-row" class="button-row">
+        <button id="btn-yes" type="button" class="primary-btn">Да ❤️</button>
+        <button id="btn-no" type="button" class="secondary-btn">Нет</button>
+      </div>
+    </section>
+
+    <section id="final-panel" class="panel hidden">
+      <button type="button" class="panel-close" data-close-panel="final-panel" aria-label="Скрыть финал">×</button>
+      <p class="final-kicker">✨ Финал</p>
+      <h2 id="final-title">Я так и знал.</h2>
+      <p id="final-text">Ты сделала этот экран ещё теплее. Это был лучший клик во всей сцене.</p>
+      <button id="restart-btn" type="button" class="ghost-btn">Сыграть заново</button>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
 </body>
 </html>
