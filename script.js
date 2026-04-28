@@ -56,7 +56,7 @@ const stageCopy = [
   },
   {
     at: 70,
-    title: "Ещё немного, и это уже не получится скрывать.",
+    title: "Ещё немного...",
     body: "Иногда самый красивый момент наступает ровно тогда, когда перестаёшь прятать главное.",
     reaction: "70 кликов. Почти финал."
   },
@@ -92,6 +92,8 @@ let titleIndex = 0;
 let pulseTime = 0;
 let heartRotation = 0;
 let typedToken = 0;
+let heartHoverStrength = 0;
+let heartBeatTime = 0;
 
 let stars = [];
 let orbiters = [];
@@ -102,6 +104,12 @@ let confetti = [];
 let cursorTrail = [];
 let heartParticles = [];
 let heartPath = [];
+
+const pointer = {
+  x: 0,
+  y: 0,
+  active: false
+};
 
 function createHeartPath() {
   const points = [];
@@ -172,6 +180,32 @@ function drawHeartShape(x, y, size, alpha, color) {
   ctx.restore();
 }
 
+function getHeartMetrics() {
+  const scale = Math.min(canvas.width, canvas.height) / 36;
+  return {
+    cx: canvas.width * 0.5,
+    cy: canvas.height * 0.5,
+    scale
+  };
+}
+
+function getHeartEquation(px, py, scale = getHeartMetrics().scale * 1.06) {
+  const { cx, cy } = getHeartMetrics();
+  const hx = (px - cx) / scale;
+  const hy = -(py - cy) / scale;
+  return Math.pow(hx * hx + hy * hy - 1, 3) - (hx * hx * Math.pow(hy, 3));
+}
+
+function getHeartZoneBounds() {
+  const { cx, cy, scale } = getHeartMetrics();
+  return {
+    left: cx - scale * 6.5,
+    right: cx + scale * 6.5,
+    top: cy - scale * 4.15,
+    bottom: cy + scale * 9.2
+  };
+}
+
 function spawnFloatingHeart() {
   floatingHearts.push({
     x: Math.random() * canvas.width,
@@ -181,7 +215,11 @@ function spawnFloatingHeart() {
     alpha: 0.16 + Math.random() * 0.4,
     sway: Math.random() * Math.PI * 2,
     swaySpeed: 0.006 + Math.random() * 0.012,
-    swayAmp: 12 + Math.random() * 34
+    swayAmp: 12 + Math.random() * 34,
+    offsetX: 0,
+    offsetY: 0,
+    vx: 0,
+    vy: 0
   });
 }
 
@@ -234,13 +272,36 @@ function spawnRipple(x, y, big = false) {
 }
 
 function pointInsideHeart(px, py) {
-  const scale = Math.min(canvas.width, canvas.height) / 32;
-  const cx = canvas.width * 0.5;
-  const cy = canvas.height * 0.5;
-  const hx = (px - cx) / scale;
-  const hy = -(py - cy) / scale;
-  const equation = Math.pow(hx * hx + hy * hy - 1, 3) - (hx * hx * Math.pow(hy, 3));
-  return equation <= 0.42;
+  return getHeartEquation(px, py) <= 0.52;
+}
+
+function pointInsideHeartZone(px, py) {
+  const bounds = getHeartZoneBounds();
+  const insideBox =
+    px >= bounds.left &&
+    px <= bounds.right &&
+    py >= bounds.top &&
+    py <= bounds.bottom;
+
+  return insideBox || pointInsideHeart(px, py);
+}
+
+function pointNearHeartOutline(px, py) {
+  const bounds = getHeartZoneBounds();
+  const nearZone =
+    px >= bounds.left - 40 &&
+    px <= bounds.right + 40 &&
+    py >= bounds.top - 40 &&
+    py <= bounds.bottom + 40;
+
+  return nearZone && Math.abs(getHeartEquation(px, py)) <= 0.24;
+}
+
+function getHeartbeatEnvelope(time) {
+  const phase = time % 1;
+  const first = Math.exp(-Math.pow((phase - 0.18) / 0.06, 2));
+  const second = 0.58 * Math.exp(-Math.pow((phase - 0.33) / 0.04, 2));
+  return first + second;
 }
 
 function getCurrentStage() {
@@ -275,12 +336,31 @@ function setTypeText(element, text) {
   typeNext();
 }
 
+let _lastFlashStageAt = -1;
+
+function triggerFlash() {
+  const overlay = document.getElementById("flash-overlay");
+  if (!overlay) return;
+  overlay.classList.remove("flash-active");
+  void overlay.offsetWidth;
+  overlay.classList.add("flash-active");
+  overlay.addEventListener("animationend", () => {
+    overlay.classList.remove("flash-active");
+  }, { once: true });
+}
+
 function updateTextScene(forceType = false) {
   const stage = getCurrentStage();
+  const stageChanged = stage.at !== _lastFlashStageAt;
   if (forceType) {
     setTypeText(mainMessage, stage.title);
+    if (stageChanged) {
+      _lastFlashStageAt = stage.at;
+      triggerFlash();
+    }
   } else {
     mainMessage.textContent = stage.title;
+    _lastFlashStageAt = stage.at;
   }
   subMessage.textContent = stage.body;
   reactionText.textContent = stage.reaction;
@@ -318,18 +398,11 @@ function loadState() {
 }
 
 function updateHiddenNoteButton() {
-  if (state.hiddenNoteSeen) {
-    hiddenNoteBtn.disabled = true;
-    hiddenNoteBtn.textContent = "Секрет открыт";
-    hiddenNoteBtn.style.opacity = "0.45";
-    hiddenNoteBtn.style.cursor = "default";
-    return;
-  }
-
-  hiddenNoteBtn.disabled = false;
-  hiddenNoteBtn.textContent = "Секрет";
-  hiddenNoteBtn.style.opacity = "";
-  hiddenNoteBtn.style.cursor = "";
+  hiddenNoteBtn.classList.toggle("is-seen", state.hiddenNoteSeen);
+  hiddenNoteBtn.setAttribute(
+    "aria-label",
+    state.hiddenNoteSeen ? "Открыть секрет снова" : "Открыть секрет"
+  );
 }
 
 function revealSecretScene() {
@@ -354,20 +427,23 @@ function revealSecretScene() {
 }
 
 function showHiddenNote() {
-  if (state.hiddenNoteSeen) {
-    return false;
+  secretPanel.classList.add("visible");
+  state.hiddenNoteOpen = true;
+
+  if (!state.hiddenNoteSeen) {
+    state.hiddenNoteSeen = true;
+    updateHiddenNoteButton();
+    saveState();
+    if (state.secretUnlocked && !state.accepted) {
+      questionPanel.classList.add("visible");
+    }
+    return true;
   }
 
-  secretPanel.classList.add("visible");
-  hint.style.opacity = "0";
-  state.hiddenNoteOpen = true;
-  state.hiddenNoteSeen = true;
-  updateHiddenNoteButton();
-  saveState();
   if (state.secretUnlocked && !state.accepted) {
     questionPanel.classList.add("visible");
   }
-  return true;
+  return false;
 }
 
 function maybeUnlockByClicks() {
@@ -376,14 +452,14 @@ function maybeUnlockByClicks() {
   }
 }
 
-function pushHeartParticles(x, y) {
+function pushHeartParticles(x, y, strength = 1) {
   for (const particle of heartParticles) {
     const dx = particle.x - x;
     const dy = particle.y - y;
     const distance = Math.hypot(dx, dy);
     const force = Math.max(0, (220 - distance) / 220);
-    particle.vx += dx * force * 0.03;
-    particle.vy += dy * force * 0.03;
+    particle.vx += dx * force * 0.03 * strength;
+    particle.vy += dy * force * 0.03 * strength;
   }
 }
 
@@ -399,24 +475,19 @@ function registerHeartClick(x, y) {
   pushHeartParticles(x, y);
 }
 
-function handleCanvasClick(x, y, detail = 1) {
+function handleCanvasClick(x, y) {
   if (state.accepted) {
     spawnConfetti(x, y, 0.4);
     spawnRipple(x, y);
     return;
   }
 
-  if (!pointInsideHeart(x, y)) {
+  if (!pointInsideHeartZone(x, y)) {
     spawnRipple(x, y);
     return;
   }
 
   registerHeartClick(x, y);
-  if (detail >= 2) {
-    if (showHiddenNote()) {
-      spawnConfetti(x, y, 1.3);
-    }
-  }
 }
 
 function showFinalScene() {
@@ -523,7 +594,6 @@ function resetExperience() {
   updateCounterUi();
   updateTextScene(false);
   updateHiddenNoteButton();
-  hint.textContent = "Двойной клик по сердцу откроет маленький секрет.";
   resetSceneObjects();
 }
 
@@ -577,23 +647,60 @@ function drawFloatingHearts() {
   floatingHearts = floatingHearts.filter((heart) => {
     heart.y -= heart.speed;
     heart.sway += heart.swaySpeed;
-    const x = heart.x + Math.sin(heart.sway) * heart.swayAmp;
-    drawHeartShape(x, heart.y, heart.size, heart.alpha, "#52cfff");
-    return heart.y > -60;
+    const baseX = heart.x + Math.sin(heart.sway) * heart.swayAmp;
+    const baseY = heart.y;
+
+    if (pointer.active) {
+      const dx = baseX + heart.offsetX - pointer.x;
+      const dy = baseY + heart.offsetY - pointer.y;
+      const distance = Math.hypot(dx, dy);
+      const influenceRadius = 140 + heart.size * 1.8;
+
+      if (distance < influenceRadius) {
+        const force = (1 - distance / influenceRadius) * 0.85;
+        heart.vx += (dx / Math.max(distance, 1)) * force * 1.45;
+        heart.vy += (dy / Math.max(distance, 1)) * force * 1.15;
+      }
+    }
+
+    heart.vx *= 0.92;
+    heart.vy *= 0.92;
+    heart.offsetX += heart.vx;
+    heart.offsetY += heart.vy;
+    heart.offsetY *= 0.98;
+
+    const x = baseX + heart.offsetX;
+    const y = baseY + heart.offsetY;
+    drawHeartShape(x, y, heart.size, heart.alpha, "#52cfff");
+    return y > -60;
   });
 }
 
 function drawHeartParticles() {
-  const cx = canvas.width * 0.5;
-  const cy = canvas.height * 0.5;
-  const scale = Math.min(canvas.width, canvas.height) / 36;
-  const pulse = 1 + Math.sin(pulseTime * 1.9) * 0.055;
+  const { cx, cy, scale } = getHeartMetrics();
+  const heartZoneHovered = pointer.active && pointInsideHeartZone(pointer.x, pointer.y);
+  const outlineHovered = pointer.active && pointNearHeartOutline(pointer.x, pointer.y);
+  const hoverTarget = outlineHovered ? 1 : heartZoneHovered ? 0.45 : 0;
 
   heartRotation += 0.01;
   pulseTime += 0.016;
+  heartHoverStrength += (hoverTarget - heartHoverStrength) * 0.08;
+  heartBeatTime += 0.012 + heartHoverStrength * 0.026;
+
+  if (pointer.active && heartHoverStrength > 0.04) {
+    pushHeartParticles(pointer.x, pointer.y, heartHoverStrength * 0.2);
+  }
+
+  const hoverBeat = getHeartbeatEnvelope(heartBeatTime) * 0.07 * heartHoverStrength;
+  const pulse = 1 + Math.sin(pulseTime * 1.9) * 0.055 + hoverBeat;
 
   const glow = ctx.createRadialGradient(cx, cy, scale * 2, cx, cy, scale * 18);
-  glow.addColorStop(0, state.accepted ? "rgba(186, 245, 255, 0.24)" : "rgba(91, 206, 255, 0.18)");
+  glow.addColorStop(
+    0,
+    state.accepted
+      ? "rgba(186, 245, 255, 0.24)"
+      : `rgba(91, 206, 255, ${0.18 + heartHoverStrength * 0.12})`
+  );
   glow.addColorStop(1, "rgba(91, 206, 255, 0)");
   ctx.fillStyle = glow;
   ctx.fillRect(cx - scale * 22, cy - scale * 20, scale * 44, scale * 40);
@@ -603,9 +710,19 @@ function drawHeartParticles() {
     const rotZ = particle.baseX * Math.sin(heartRotation);
     const targetX = cx + rotX * scale * pulse;
     const targetY = cy + particle.baseY * scale * pulse;
+    const cursorDx = targetX - pointer.x;
+    const cursorDy = targetY - pointer.y;
+    const cursorDistance = Math.hypot(cursorDx, cursorDy);
 
     particle.vx += (targetX - particle.x) * 0.06;
     particle.vy += (targetY - particle.y) * 0.06;
+
+    if (pointer.active && heartHoverStrength > 0.04 && cursorDistance < scale * 7.8) {
+      const cursorForce = (1 - cursorDistance / (scale * 7.8)) * 0.42 * heartHoverStrength;
+      particle.vx += (cursorDx / Math.max(cursorDistance, 1)) * cursorForce * 2.2;
+      particle.vy += (cursorDy / Math.max(cursorDistance, 1)) * cursorForce * 1.7;
+    }
+
     particle.vx *= 0.84;
     particle.vy *= 0.84;
     particle.x += particle.vx;
@@ -620,11 +737,13 @@ function drawHeartParticles() {
     ctx.beginPath();
     ctx.arc(particle.x, particle.y, radius, 0, Math.PI * 2);
     ctx.fillStyle = hue;
-    ctx.shadowBlur = 18;
+    ctx.shadowBlur = 18 + heartHoverStrength * 8;
     ctx.shadowColor = state.accepted ? "rgba(186, 245, 255, 0.62)" : "rgba(78, 205, 255, 0.62)";
     ctx.fill();
     ctx.shadowBlur = 0;
   }
+
+  canvas.style.cursor = heartZoneHovered ? "pointer" : "";
 }
 
 function drawRipples() {
@@ -714,19 +833,14 @@ function loop() {
 }
 
 canvas.addEventListener("click", (event) => {
-  handleCanvasClick(event.clientX, event.clientY, event.detail);
-});
-
-canvas.addEventListener("dblclick", (event) => {
-  event.preventDefault();
-  if (pointInsideHeart(event.clientX, event.clientY)) {
-    if (showHiddenNote()) {
-      spawnConfetti(event.clientX, event.clientY, 1.4);
-    }
-  }
+  handleCanvasClick(event.clientX, event.clientY);
 });
 
 document.addEventListener("mousemove", (event) => {
+  pointer.x = event.clientX;
+  pointer.y = event.clientY;
+  pointer.active = true;
+
   if (cursorTrail.length > 40) {
     cursorTrail.shift();
   }
@@ -743,8 +857,10 @@ document.addEventListener("mousemove", (event) => {
 });
 
 hiddenNoteBtn.addEventListener("click", () => {
-  if (showHiddenNote()) {
-    spawnRipple(canvas.width * 0.5, canvas.height * 0.34);
+  const firstReveal = showHiddenNote();
+  spawnRipple(canvas.width * 0.5, canvas.height * 0.34);
+  if (firstReveal) {
+    spawnConfetti(canvas.width * 0.12, canvas.height * 0.84, 0.75);
   }
 });
 
@@ -779,6 +895,14 @@ restartBtn.addEventListener("click", () => {
 });
 
 window.addEventListener("resize", resize);
+window.addEventListener("mouseleave", () => {
+  pointer.active = false;
+  canvas.style.cursor = "";
+});
+document.addEventListener("mouseleave", () => {
+  pointer.active = false;
+  canvas.style.cursor = "";
+});
 
 setInterval(() => {
   titleIndex = (titleIndex + 1) % titleFrames.length;

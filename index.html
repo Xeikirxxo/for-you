@@ -13,6 +13,7 @@
   <div class="background-noise"></div>
 
   <main id="ui">
+    <div id="flash-overlay"></div>
     <section id="hud" class="panel">
       <div class="hud-row">
         <span class="hud-label">Отклик</span>
@@ -28,10 +29,17 @@
       <div id="hero-badge" class="hero-badge">для тебя</div>
       <h1 id="main-message">Мне давно хотелось это сказать.</h1>
       <p id="sub-message">Сделай пару кликов по сердцу. Оно не просто крутится, оно собирает смелость.</p>
-      <button id="hidden-note" type="button" class="ghost-chip">Секрет</button>
     </section>
 
-    <div id="hint" class="hint">Двойной клик по сердцу откроет маленький секрет.</div>
+    <button id="hidden-note" type="button" class="secret-heart-trigger" aria-label="Открыть секрет">
+      <span class="secret-heart-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64" role="presentation">
+          <path d="M32 56C27 51.5 12 40.1 12 25.5C12 17.7 17.9 12 25.5 12C29.9 12 33.3 13.9 36 18C38.7 13.9 42.1 12 46.5 12C54.1 12 60 17.7 60 25.5C60 40.1 45 51.5 40 56L36 59.4L32 56Z" />
+        </svg>
+      </span>
+    </button>
+
+    <div id="hint" class="hint" hidden></div>
 
     <section id="secret-panel" class="panel hidden">
       <button type="button" class="panel-close" data-close-panel="secret-panel" aria-label="Скрыть секрет">×</button>
